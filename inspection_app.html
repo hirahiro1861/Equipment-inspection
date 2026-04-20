@@ -295,7 +295,7 @@
 <header>
   <h1>⚙ 設備点検システム</h1>
   <div class="header-right">
-    <span id="progress-text">0 / 34</span>
+    <span id="progress-text">0 / 40</span>
     <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
   </div>
 </header>
@@ -342,29 +342,34 @@ const GROUPS = [
       { tag: 'U-004',   name: 'スクリーン（ユニット）', pattern: 'C', subs: ['駆動モータ', '撹拌機'] },
       { tag: 'V-004-1', name: 'スクリーンろ液タンク',   pattern: 'D' },
       { tag: 'V-004-2', name: 'スクリーンし渣タンク',   pattern: 'D' },
+      { tag: 'A-004',   name: 'スクリーンろ液タンク 撹拌機', pattern: 'A' },
       { tag: 'P-004',   name: 'スクリーンろ液タンク 移送ポンプ', pattern: 'A' },
     ]
   },
   {
     name: '汚泥燃料生産設備',
     devices: [
-      { tag: 'U-005',  name: '脱水機（ユニット）',   pattern: 'C', subs: ['駆動モータ', 'コンベアモータ'] },
-      { tag: 'V-005A', name: '凝集槽A',              pattern: 'D' },
-      { tag: 'V-005B', name: '凝集槽B',              pattern: 'D' },
-      { tag: 'P-005A', name: '脱水機 工水ブースターポンプ', pattern: 'A' },
-      { tag: 'V-006',  name: '再生油貯留タンク',     pattern: 'D' },
-      { tag: 'P-006',  name: '再生油添加ポンプ',     pattern: 'A' },
-      { tag: 'U-007',  name: '混練機（ユニット）',   pattern: 'C', subs: ['スクリューコンベア', 'ブリッジ防止', '減速機'] },
-      { tag: 'P-008',  name: '汚泥供給ポンプ',       pattern: 'A' },
-      { tag: 'U-009',  name: '乾燥機（ユニット）',   pattern: 'C', subs: ['熱風機', '乾燥ローラ', 'ロータリーバルブ'] },
-      { tag: 'B-009',  name: '乾燥機 空送ブロワ',    pattern: 'A' },
-      { tag: 'U-010',  name: '復水器（ユニット）',   pattern: 'C', subs: ['移送ポンプ', '返送ポンプ'] },
-      { tag: 'V-010',  name: '復水器 復水タンク',    pattern: 'D' },
-      { tag: 'P-010A', name: '復水器 移送ポンプ',    pattern: 'A' },
-      { tag: 'P-010B', name: '復水器 返送ポンプ',    pattern: 'A' },
-      { tag: 'U-011',  name: '成型機（ユニット）',   pattern: 'C', subs: ['スクリューコンベア', 'ブリッジ防止', 'スマッシュバー'] },
-      { tag: 'P-011',  name: '成型機 油圧ポンプ',    pattern: 'A' },
-      { tag: 'P-012',  name: '集水桝 揚水ポンプ',    pattern: 'B' },
+      { tag: 'U-005',   name: '脱水機（ユニット）',   pattern: 'C', subs: ['駆動モータ', 'コンベアモータ'] },
+      { tag: 'V-005A',  name: '凝集槽A',              pattern: 'D' },
+      { tag: 'V-005B',  name: '凝集槽B',              pattern: 'D' },
+      { tag: 'A-005A',  name: '凝集槽撹拌機A',        pattern: 'A' },
+      { tag: 'A-005B',  name: '凝集槽撹拌機B',        pattern: 'A' },
+      { tag: 'M-005-2', name: '脱水機 コンベア',      pattern: 'A' },
+      { tag: 'P-005A',  name: '脱水機 工水ブースターポンプ', pattern: 'A' },
+      { tag: 'V-006',   name: '再生油貯留タンク',     pattern: 'D' },
+      { tag: 'P-006',   name: '再生油添加ポンプ',     pattern: 'A' },
+      { tag: 'U-007',   name: '混練機（ユニット）',   pattern: 'C', subs: ['スクリューコンベア', 'ブリッジ防止', '減速機'] },
+      { tag: 'P-008',   name: '汚泥供給ポンプ',       pattern: 'A' },
+      { tag: 'U-009',   name: '乾燥機（ユニット）',   pattern: 'C', subs: ['熱風機', '乾燥ローラ', 'ロータリーバルブ'] },
+      { tag: 'B-009',   name: '乾燥機 空送ブロワ',    pattern: 'A' },
+      { tag: 'U-010',   name: '復水器（ユニット）',   pattern: 'C', subs: ['移送ポンプ', '返送ポンプ'] },
+      { tag: 'V-010',   name: '復水器 復水タンク',    pattern: 'D' },
+      { tag: 'P-010A',  name: '復水器 移送ポンプ',    pattern: 'A' },
+      { tag: 'P-010B',  name: '復水器 返送ポンプ',    pattern: 'A' },
+      { tag: 'U-011',   name: '成型機（ユニット）',   pattern: 'C', subs: ['スクリューコンベア', 'ブリッジ防止', 'スマッシュバー'] },
+      { tag: 'T-011',   name: '成型機 サイクロン',    pattern: 'D' },
+      { tag: 'P-011',   name: '成型機 油圧ポンプ',    pattern: 'A' },
+      { tag: 'P-012',   name: '集水桝 揚水ポンプ',    pattern: 'B' },
     ]
   },
   {
