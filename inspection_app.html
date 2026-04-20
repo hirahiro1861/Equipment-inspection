@@ -297,6 +297,7 @@
   <div class="header-right">
     <span id="progress-text">0 / 40</span>
     <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
+    <button onclick="downloadExcel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:5px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;">📥 Excel保存</button>
   </div>
 </header>
 
@@ -640,6 +641,13 @@ async function submitForm(tag) {
     }
   }
   btn.disabled = false;
+}
+
+// ===== Excelダウンロード =====
+function downloadExcel() {
+  const SHEET_ID = '1HGtBnIGyTMh7OAZz0ciDyJBeqF60fnDalP7ESDrDbhM';
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=xlsx&sheet=点検記録`;
+  window.open(url, '_blank');
 }
 
 // ===== 定型文挿入 =====
