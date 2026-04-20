@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>設備点検システム</title>
+<style>
+  :root {
+    --primary: #1a5276;
+    --primary-light: #2980b9;
+    --accent: #27ae60;
+    --warn: #e67e22;
+    --danger: #c0392b;
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --border: #d0dae6;
+    --text: #1c2833;
+    --muted: #5d6d7e;
+    --sidebar-w: 260px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* ===== HEADER ===== */
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 0 16px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  header h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.05em; }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  #progress-text { opacity: 0.85; }
+  .progress-bar-wrap { width: 140px; height: 8px; background: rgba(255,255,255,0.25); border-radius: 4px; overflow: hidden; }
+  #progress-bar { height: 100%; background: #2ecc71; border-radius: 4px; transition: width 0.4s; width: 0%; }
+
+  /* ===== LAYOUT ===== */
+  .layout { display: flex; margin-top: 52px; min-height: calc(100vh - 52px); }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 52px; left: 0; bottom: 0;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .sidebar-group { margin-bottom: 4px; }
+  .group-header {
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: #eef2f7;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .group-header .arrow { transition: transform 0.2s; font-size: 10px; }
+  .group-header.collapsed .arrow { transform: rotate(-90deg); }
+  .group-items { overflow: hidden; }
+  .group-items.collapsed { display: none; }
+  .device-item {
+    padding: 9px 14px 9px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid #f0f4f8;
+    transition: background 0.15s;
+  }
+  .device-item:hover { background: #eef6ff; }
+  .device-item.active { background: #d6eaf8; border-left: 3px solid var(--primary-light); padding-left: 17px; }
+  .device-name { font-size: 13px; flex: 1; }
+  .tag-badge {
+    font-size: 10px;
+    color: var(--muted);
+    background: #eef2f7;
+    border-radius: 3px;
+    padding: 1px 5px;
+    flex-shrink: 0;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: #d0dae6;
+  }
+  .status-dot.ok { background: var(--accent); }
+  .status-dot.ng { background: var(--danger); }
+
+  /* ===== MAIN ===== */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 24px 20px 40px;
+  }
+  .welcome {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 400px; color: var(--muted); text-align: center; gap: 12px;
+  }
+  .welcome .icon { font-size: 48px; opacity: 0.4; }
+  .welcome p { font-size: 15px; }
+
+  /* ===== FORM CARD ===== */
+  .form-card {
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    max-width: 680px;
+  }
+  .form-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .form-header .tag { font-size: 11px; background: rgba(255,255,255,0.25); padding: 3px 8px; border-radius: 4px; }
+  .form-header h2 { font-size: 16px; }
+  .form-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* 点検者 */
+  .field-row { display: flex; flex-direction: column; gap: 6px; }
+  .field-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .field-row input[type=text],
+  .field-row input[type=date],
+  .field-row textarea,
+  .field-row select {
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    width: 100%;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field-row input:focus, .field-row textarea:focus, .field-row select:focus {
+    border-color: var(--primary-light);
+  }
+
+  /* ===== 点検項目グリッド ===== */
+  .inspection-grid { display: grid; gap: 10px; }
+  .inspection-item {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .inspection-label { font-size: 14px; font-weight: 600; flex: 0 0 80px; }
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-group label {
+    display: flex; align-items: center; gap: 5px; cursor: pointer;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .radio-group input[type=radio] { display: none; }
+  .radio-group input[type=radio]:checked + span { font-weight: 700; }
+  .radio-group label:has(input[value="異常なし"]:checked) { background: #d5f5e3; border-color: var(--accent); color: #1e8449; }
+  .radio-group label:has(input[value="要注意"]:checked) { background: #fef9e7; border-color: var(--warn); color: #d68910; }
+  .radio-group label:has(input[value="異常あり"]:checked) { background: #fdedec; border-color: var(--danger); color: var(--danger); }
+  .radio-group label:has(input[value="該当なし"]:checked) { background: #eef2f7; border-color: #aab; color: var(--muted); }
+
+  /* 構成機器表示（パターンC） */
+  .sub-components {
+    background: #f0f4f8;
+    border-radius: 5px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    border: 1px dashed var(--border);
+  }
+  .sub-components strong { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; color: var(--muted); }
+  .sub-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sub-tag {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 9px;
+    font-size: 12px;
+  }
+
+  /* 備考 */
+  .field-row textarea { resize: vertical; min-height: 64px; }
+
+  /* ===== SUBMIT ===== */
+  .form-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .btn-submit {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 28px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .btn-submit:hover { background: var(--primary-light); }
+  .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+  .submit-msg { font-size: 13px; }
+  .submit-msg.ok { color: var(--accent); }
+  .submit-msg.err { color: var(--danger); }
+
+  /* ===== MOBILE ===== */
+  @media (max-width: 700px) {
+    :root { --sidebar-w: 100%; }
+    .sidebar {
+      position: static;
+      width: 100%;
+      height: auto;
+      max-height: 200px;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .layout { flex-direction: column; }
+    .main { margin-left: 0; padding: 12px; }
+    .header-right .progress-bar-wrap { width: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <h1>⚙ 設備点検システム</h1>
+  <div class="header-right">
+    <span id="progress-text">0 / 34</span>
+    <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
+  </div>
+</header>
+
+<!-- ===== LAYOUT ===== -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <!-- MAIN -->
+  <main class="main" id="main">
+    <div class="welcome">
+      <div class="icon">🔧</div>
+      <p>左のメニューから点検する機器を選んでください</p>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// ===== GAS URL（デプロイ後に書き換え） =====
+const GAS_URL = 'https://script.google.com/macros/s/【ここにデプロイURL】/exec';
+
+// ===== 機器データ =====
+const GROUPS = [
+  {
+    name: '汚泥洗浄設備',
+    devices: [
+      { tag: 'A-001A', name: '汚泥洗浄槽 撹拌機A',      pattern: 'A' },
+      { tag: 'A-001B', name: '汚泥洗浄槽 撹拌機B',      pattern: 'A' },
+      { tag: 'A-001C', name: '汚泥洗浄槽 撹拌機C',      pattern: 'A' },
+      { tag: 'P-001',  name: '汚泥洗浄槽 揚水ポンプ',    pattern: 'B' },
+      { tag: 'A-002A', name: '一次洗浄水貯留槽 撹拌機A', pattern: 'A' },
+      { tag: 'A-002B', name: '一次洗浄水貯留槽 撹拌機B', pattern: 'A' },
+      { tag: 'P-002',  name: '一次洗浄水貯留槽 揚水ポンプ', pattern: 'B' },
+      { tag: 'A-003',  name: '二次洗浄水貯留槽 撹拌機',  pattern: 'A' },
+      { tag: 'P-003',  name: '二次洗浄水貯留槽 揚水ポンプ', pattern: 'B' },
+    ]
+  },
+  {
+    name: 'スクリーン設備',
+    devices: [
+      { tag: 'U-004',   name: 'スクリーン（ユニット）', pattern: 'C', subs: ['駆動モータ', '撹拌機'] },
+      { tag: 'V-004-1', name: 'スクリーンろ液タンク',   pattern: 'D' },
+      { tag: 'V-004-2', name: 'スクリーンし渣タンク',   pattern: 'D' },
+      { tag: 'P-004',   name: 'スクリーンろ液タンク 移送ポンプ', pattern: 'A' },
+    ]
+  },
+  {
+    name: '汚泥燃料生産設備',
+    devices: [
+      { tag: 'U-005',  name: '脱水機（ユニット）',   pattern: 'C', subs: ['駆動モータ', 'コンベアモータ'] },
+      { tag: 'V-005A', name: '凝集槽A',              pattern: 'D' },
+      { tag: 'V-005B', name: '凝集槽B',              pattern: 'D' },
+      { tag: 'P-005A', name: '脱水機 工水ブースターポンプ', pattern: 'A' },
+      { tag: 'V-006',  name: '再生油貯留タンク',     pattern: 'D' },
+      { tag: 'P-006',  name: '再生油添加ポンプ',     pattern: 'A' },
+      { tag: 'U-007',  name: '混練機（ユニット）',   pattern: 'C', subs: ['スクリューコンベア', 'ブリッジ防止', '減速機'] },
+      { tag: 'P-008',  name: '汚泥供給ポンプ',       pattern: 'A' },
+      { tag: 'U-009',  name: '乾燥機（ユニット）',   pattern: 'C', subs: ['熱風機', '乾燥ローラ', 'ロータリーバルブ'] },
+      { tag: 'B-009',  name: '乾燥機 空送ブロワ',    pattern: 'A' },
+      { tag: 'U-010',  name: '復水器（ユニット）',   pattern: 'C', subs: ['移送ポンプ', '返送ポンプ'] },
+      { tag: 'V-010',  name: '復水器 復水タンク',    pattern: 'D' },
+      { tag: 'P-010A', name: '復水器 移送ポンプ',    pattern: 'A' },
+      { tag: 'P-010B', name: '復水器 返送ポンプ',    pattern: 'A' },
+      { tag: 'U-011',  name: '成型機（ユニット）',   pattern: 'C', subs: ['スクリューコンベア', 'ブリッジ防止', 'スマッシュバー'] },
+      { tag: 'P-011',  name: '成型機 油圧ポンプ',    pattern: 'A' },
+      { tag: 'P-012',  name: '集水桝 揚水ポンプ',    pattern: 'B' },
+    ]
+  },
+  {
+    name: '薬品ヤード',
+    devices: [
+      { tag: 'P-005B', name: 'カチオン添加ポンプ', pattern: 'A' },
+    ]
+  },
+  {
+    name: '濾過槽',
+    devices: [
+      { tag: 'P-127F', name: '濾過槽 揚水ポンプF', pattern: 'B' },
+    ]
+  },
+  {
+    name: 'その他',
+    devices: [
+      { tag: 'F-015', name: '脱臭装置 排風機', pattern: 'A' },
+      { tag: 'C-015', name: 'コンプレッサ',    pattern: 'A' },
+    ]
+  }
+];
+
+// ===== 点検項目定義 =====
+const PATTERNS = {
+  A: ['目視', '異臭', '異音', '振動'],
+  B: ['異音', '振動', '揚水状況'],
+  C: ['目視', '異臭', '異音', '振動'],
+  D: ['液漏れ', '変形'],
+};
+
+// ===== State =====
+const results = {}; // { tag: { items: {項目: 結果}, note: '', submitter: '', date: '' } }
+let activeTag = null;
+
+// ===== 全機器リスト =====
+const allDevices = GROUPS.flatMap(g => g.devices);
+const totalCount = allDevices.length;
+
+// ===== サイドバー生成 =====
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = '';
+  GROUPS.forEach((g, gi) => {
+    const grp = document.createElement('div');
+    grp.className = 'sidebar-group';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'group-header';
+    hdr.innerHTML = `<span>${g.name}</span><span class="arrow">▼</span>`;
+    hdr.addEventListener('click', () => {
+      hdr.classList.toggle('collapsed');
+      items.classList.toggle('collapsed');
+    });
+
+    const items = document.createElement('div');
+    items.className = 'group-items';
+
+    g.devices.forEach(dev => {
+      const item = document.createElement('div');
+      item.className = 'device-item';
+      item.dataset.tag = dev.tag;
+      const r = results[dev.tag];
+      const dot = r ? (hasNG(r) ? 'ng' : 'ok') : '';
+      item.innerHTML = `
+        <span class="status-dot ${dot}" id="dot-${dev.tag}"></span>
+        <span class="device-name">${dev.name}</span>
+        <span class="tag-badge">${dev.tag}</span>
+      `;
+      item.addEventListener('click', () => showForm(dev));
+      items.appendChild(item);
+    });
+
+    grp.appendChild(hdr);
+    grp.appendChild(items);
+    sidebar.appendChild(grp);
+  });
+}
+
+function hasNG(r) {
+  return Object.values(r.items || {}).some(v => v === '異常あり' || v === '要注意');
+}
+
+// ===== 進捗更新 =====
+function updateProgress() {
+  const done = Object.keys(results).length;
+  document.getElementById('progress-text').textContent = `${done} / ${totalCount}`;
+  document.getElementById('progress-bar').style.width = `${(done / totalCount) * 100}%`;
+}
+
+// ===== フォーム表示 =====
+function showForm(dev) {
+  activeTag = dev.tag;
+
+  // サイドバーのactive更新
+  document.querySelectorAll('.device-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.device-item[data-tag="${dev.tag}"]`).classList.add('active');
+
+  const saved = results[dev.tag] || {};
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const currentTime = now.toTimeString().slice(0, 5);
+  const items = PATTERNS[dev.pattern];
+
+  let itemsHTML = items.map(item => {
+    const savedVal = saved.items?.[item] || '';
+    const opts = ['異常なし', '要注意', '異常あり', '該当なし'];
+    const radios = opts.map(o =>
+      `<label><input type="radio" name="item-${item}" value="${o}" ${savedVal === o ? 'checked' : ''}><span>${o}</span></label>`
+    ).join('');
+    return `
+      <div class="inspection-item">
+        <span class="inspection-label">${item}</span>
+        <div class="radio-group">${radios}</div>
+      </div>
+    `;
+  }).join('');
+
+  let subsHTML = '';
+  if (dev.pattern === 'C' && dev.subs) {
+    subsHTML = `
+      <div class="sub-components">
+        <strong>構成機器</strong>
+        <div class="sub-list">${dev.subs.map(s => `<span class="sub-tag">${s}</span>`).join('')}</div>
+      </div>
+    `;
+  }
+
+  document.getElementById('main').innerHTML = `
+    <div class="form-card">
+      <div class="form-header">
+        <span class="tag">${dev.tag}</span>
+        <h2>${dev.name}</h2>
+        <span style="margin-left:auto;font-size:12px;opacity:0.75">パターン${dev.pattern}</span>
+      </div>
+      <div class="form-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <div class="field-row">
+            <label class="field-label">点検日</label>
+            <input type="date" id="f-date" value="${saved.date || today}">
+          </div>
+          <div class="field-row">
+            <label class="field-label">点検時刻</label>
+            <input type="time" id="f-time" value="${saved.time || currentTime}">
+          </div>
+          <div class="field-row">
+            <label class="field-label">点検者</label>
+            <input type="text" id="f-submitter" placeholder="氏名" value="${saved.submitter || ''}">
+          </div>
+        </div>
+        ${subsHTML}
+        <div class="inspection-grid">
+          ${itemsHTML}
+        </div>
+        <div class="field-row">
+          <label class="field-label">備考</label>
+          <textarea id="f-note" placeholder="異常内容・処置内容など">${saved.note || ''}</textarea>
+        </div>
+      </div>
+      <div class="form-footer">
+        <button class="btn-submit" id="btn-submit" onclick="submitForm('${dev.tag}')">保存・送信</button>
+        <span class="submit-msg" id="submit-msg"></span>
+      </div>
+    </div>
+  `;
+}
+
+// ===== 送信処理 =====
+async function submitForm(tag) {
+  const dev = allDevices.find(d => d.tag === tag);
+  const date = document.getElementById('f-date').value;
+  const time = document.getElementById('f-time').value;
+  const submitter = document.getElementById('f-submitter').value.trim();
+  const note = document.getElementById('f-note').value.trim();
+  const msg = document.getElementById('submit-msg');
+  const btn = document.getElementById('btn-submit');
+
+  if (!submitter) {
+    msg.textContent = '点検者名を入力してください';
+    msg.className = 'submit-msg err';
+    return;
+  }
+
+  const items = {};
+  PATTERNS[dev.pattern].forEach(item => {
+    const checked = document.querySelector(`input[name="item-${item}"]:checked`);
+    items[item] = checked ? checked.value : '';
+  });
+
+  const unchecked = PATTERNS[dev.pattern].filter(item => !items[item]);
+  if (unchecked.length > 0) {
+    msg.textContent = `未選択の項目があります：${unchecked.join('、')}`;
+    msg.className = 'submit-msg err';
+    return;
+  }
+
+  // ローカル保存
+  results[tag] = { date, time, submitter, items, note };
+
+  // サイドバードット更新
+  const dot = document.getElementById(`dot-${tag}`);
+  if (dot) dot.className = `status-dot ${hasNG(results[tag]) ? 'ng' : 'ok'}`;
+  updateProgress();
+
+  // GAS送信
+  btn.disabled = true;
+  msg.textContent = '送信中...';
+  msg.className = 'submit-msg';
+
+  const payload = {
+    date,
+    time,
+    submitter,
+    tag,
+    deviceName: dev.name,
+    pattern: dev.pattern,
+    items,
+    note
+  };
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      msg.textContent = '✔ 保存しました';
+      msg.className = 'submit-msg ok';
+    } else {
+      throw new Error(json.message || 'エラー');
+    }
+  } catch (e) {
+    // GAS URL未設定の場合はローカル保存のみ成功とする
+    if (GAS_URL.includes('【ここに')) {
+      msg.textContent = '✔ ローカル保存済み（GAS未設定）';
+      msg.className = 'submit-msg ok';
+    } else {
+      msg.textContent = '送信エラー: ' + e.message;
+      msg.className = 'submit-msg err';
+    }
+  }
+  btn.disabled = false;
+}
+
+// ===== 初期化 =====
+buildSidebar();
+updateProgress();
+</script>
+</body>
+</html>
