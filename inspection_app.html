@@ -206,6 +206,66 @@
   /* 備考 */
   .field-row textarea { resize: vertical; min-height: 64px; }
 
+  /* ===== メディアアップロード ===== */
+  .media-area {
+    background: #f0f4f8;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .media-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .media-btns button {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .media-btns button:active { background: var(--primary); color: #fff; }
+  .media-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .media-thumb {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: #000;
+  }
+  .media-thumb img, .media-thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .media-thumb .del-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .media-count { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
   /* ===== 定型文パレット ===== */
   .preset-palette {
     background: #f0f4f8;
@@ -556,13 +616,84 @@ function showForm(dev) {
           </div>
           <textarea id="f-note" placeholder="異常内容・処置内容など（タップで定型文挿入 / 音声入力可）">${saved.note || ''}</textarea>
         </div>
-      </div>
+        <div class="field-row">
+          <label class="field-label">画像・動画</label>
+          <div class="media-area">
+            <div class="media-btns">
+              <button type="button" onclick="document.getElementById('f-image').click()">📷 画像を追加</button>
+              <button type="button" onclick="document.getElementById('f-video').click()">🎥 動画を追加（5秒以内）</button>
+            </div>
+            <input type="file" id="f-image" accept="image/*" multiple style="display:none" onchange="addMedia(this,'image')">
+            <input type="file" id="f-video" accept="video/*" style="display:none" onchange="addMedia(this,'video')">
+            <div class="media-preview" id="media-preview"></div>
+            <div class="media-count" id="media-count"></div>
+          </div>
+        </div>
       <div class="form-footer">
         <button class="btn-submit" id="btn-submit" onclick="submitForm('${dev.tag}')">保存・送信</button>
         <span class="submit-msg" id="submit-msg"></span>
       </div>
     </div>
   `;
+}
+
+// ===== メディア管理 =====
+const mediaFiles = []; // {file, type, url}
+
+function addMedia(input, type) {
+  const files = Array.from(input.files);
+  files.forEach(file => {
+    if (type === 'video') {
+      // 動画の長さチェック
+      const video = document.createElement('video');
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      video.onloadedmetadata = () => {
+        if (video.duration > 5) {
+          alert('動画は5秒以内にしてください（' + video.duration.toFixed(1) + '秒）');
+          URL.revokeObjectURL(url);
+          return;
+        }
+        mediaFiles.push({ file, type, url });
+        renderMediaPreview();
+      };
+    } else {
+      const url = URL.createObjectURL(file);
+      mediaFiles.push({ file, type, url });
+      renderMediaPreview();
+    }
+  });
+  input.value = '';
+}
+
+function renderMediaPreview() {
+  const preview = document.getElementById('media-preview');
+  const count = document.getElementById('media-count');
+  if (!preview) return;
+  preview.innerHTML = mediaFiles.map((m, i) => `
+    <div class="media-thumb">
+      ${m.type === 'image'
+        ? `<img src="${m.url}">`
+        : `<video src="${m.url}" muted playsinline></video>`}
+      <button class="del-btn" onclick="removeMedia(${i})">×</button>
+    </div>
+  `).join('');
+  count.textContent = mediaFiles.length > 0 ? `${mediaFiles.length}件追加済み` : '';
+}
+
+function removeMedia(i) {
+  URL.revokeObjectURL(mediaFiles[i].url);
+  mediaFiles.splice(i, 1);
+  renderMediaPreview();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 // ===== 送信処理 =====
@@ -607,6 +738,18 @@ async function submitForm(tag) {
   msg.textContent = '送信中...';
   msg.className = 'submit-msg';
 
+  // メディアをBase64に変換
+  const mediaData = [];
+  for (const m of mediaFiles) {
+    const base64 = await fileToBase64(m.file);
+    mediaData.push({
+      name: m.file.name,
+      type: m.type,
+      mimeType: m.file.type,
+      data: base64
+    });
+  }
+
   const payload = {
     date,
     time,
@@ -615,7 +758,8 @@ async function submitForm(tag) {
     deviceName: dev.name,
     pattern: dev.pattern,
     items,
-    note
+    note,
+    media: mediaData
   };
 
   try {
@@ -627,11 +771,13 @@ async function submitForm(tag) {
     if (json.status === 'ok') {
       msg.textContent = '✔ 保存しました';
       msg.className = 'submit-msg ok';
+      // メディアをリセット
+      mediaFiles.length = 0;
+      renderMediaPreview();
     } else {
       throw new Error(json.message || 'エラー');
     }
   } catch (e) {
-    // GAS URL未設定の場合はローカル保存のみ成功とする
     if (GAS_URL.includes('【ここに')) {
       msg.textContent = '✔ ローカル保存済み（GAS未設定）';
       msg.className = 'submit-msg ok';
