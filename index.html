@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="設備点検">
+<title>設備点検システム</title>
+<style>
+  :root {
+    --primary:       #1a3a52;
+    --primary-mid:   #1e5276;
+    --primary-light: #2980b9;
+    --accent:        #e8a020;
+    --accent-light:  #f5c050;
+    --danger:        #c0392b;
+    --ok:            #27ae60;
+    --bg:            #0f1e2d;
+    --surface:       #162840;
+    --surface2:      #1e3550;
+    --border:        #2a4a6a;
+    --text:          #e8f0f8;
+    --muted:         #7a9ab8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* 背景グリッド */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(41,128,185,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(41,128,185,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 24px 24px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  .header-icon {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 12px rgba(232,160,32,0.6));
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { filter: drop-shadow(0 0 12px rgba(232,160,32,0.6)); }
+    50%       { filter: drop-shadow(0 0 20px rgba(232,160,32,0.9)); }
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: var(--text);
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ===== DATE BAR ===== */
+  .date-bar {
+    position: relative;
+    z-index: 10;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .date-bar .date-now {
+    color: var(--accent-light);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ===== MAIN ===== */
+  main {
+    position: relative;
+    z-index: 10;
+    padding: 24px 16px 40px;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-left: 4px;
+    border-left: 3px solid var(--accent);
+    padding-left: 8px;
+  }
+
+  /* ===== CARD ===== */
+  .card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 左ラインアクセント */
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--card-color, var(--primary-light));
+    border-radius: 12px 0 0 12px;
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .card:active {
+    transform: scale(0.97);
+    background: var(--surface2);
+    border-color: var(--card-color, var(--primary-light));
+  }
+
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    background: var(--card-icon-bg, rgba(41,128,185,0.15));
+    border: 1px solid var(--card-color, rgba(41,128,185,0.3));
+  }
+
+  .card-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-arrow {
+    font-size: 18px;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  .card:active .card-arrow {
+    transform: translateX(4px);
+  }
+
+  /* ===== カラーバリエーション ===== */
+  .card-blue  { --card-color: #2980b9; --card-icon-bg: rgba(41,128,185,0.15); }
+  .card-teal  { --card-color: #16a085; --card-icon-bg: rgba(22,160,133,0.15); }
+  .card-red   { --card-color: #c0392b; --card-icon-bg: rgba(192,57,43,0.15); }
+  .card-orange{ --card-color: #e67e22; --card-icon-bg: rgba(230,126,34,0.15); }
+  .card-purple{ --card-color: #8e44ad; --card-icon-bg: rgba(142,68,173,0.15); }
+
+  /* ===== 点検状況バッジ ===== */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge-done {
+    background: rgba(39,174,96,0.2);
+    color: #2ecc71;
+    border: 1px solid rgba(39,174,96,0.4);
+  }
+  .badge-undone {
+    background: rgba(192,57,43,0.2);
+    color: #e74c3c;
+    border: 1px solid rgba(192,57,43,0.4);
+  }
+  .badge-loading {
+    background: rgba(122,154,184,0.15);
+    color: var(--muted);
+    border: 1px solid rgba(122,154,184,0.2);
+  }
+
+  /* シフト表示テキスト */
+  .shift-text {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* ===== FOOTER ===== */
+  footer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 16px;
+    font-size: 11px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+
+  /* ===== セーフエリア対応 ===== */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    footer { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="header-icon">⚙</span>
+  <h1>設備点検システム</h1>
+  <p>固形燃料製造施設</p>
+</header>
+
+<div class="date-bar">
+  <span>点検表を選択してください</span>
+  <span class="date-now" id="date-now"></span>
+</div>
+
+<main>
+  <p class="section-label">点検表メニュー</p>
+
+  <div class="card-list">
+
+    <a class="card card-blue" href="inspection_app.html">
+      <div class="card-icon">🔧</div>
+      <div class="card-body">
+        <div class="card-title">機器点検表</div>
+        <div class="card-desc">モータ・ポンプ・槽など 44台</div>
+        <div class="shift-text" id="shift-label-kiki"></div>
+      </div>
+      <span class="status-badge badge-loading" id="badge-kiki">確認中</span>
+      <span class="card-arrow">›</span>
+    </a>
+
+    <a class="card card-teal" href="piping_inspection.html">
+      <div class="card-icon">🔩</div>
+      <div class="card-body">
+        <div class="card-title">配管点検表</div>
+        <div class="card-desc">各配管 22系統</div>
+        <div class="shift-text" id="shift-label-piping"></div>
+      </div>
+      <span class="status-badge badge-loading" id="badge-piping">確認中</span>
+      <span class="card-arrow">›</span>
+    </a>
+
+    <a class="card card-red" href="boiler_daily.html">
+      <div class="card-icon">🔥</div>
+      <div class="card-body">
+        <div class="card-title">ボイラー日常点検表</div>
+        <div class="card-desc">高圧蒸気ボイラー（三浦工業）始業前・日常</div>
+        <div class="shift-text" id="shift-label-boiler"></div>
+      </div>
+      <span class="status-badge badge-loading" id="badge-boiler">確認中</span>
+      <span class="card-arrow">›</span>
+    </a>
+
+    <a class="card card-purple" href="vaporizer_daily.html">
+      <div class="card-icon">💧</div>
+      <div class="card-body">
+        <div class="card-title">ベーパライザ日常点検表</div>
+        <div class="card-desc">ベーパライザ MIN-ED 日常点検</div>
+        <div class="shift-text" id="shift-label-vaporizer"></div>
+      </div>
+      <span class="status-badge badge-loading" id="badge-vaporizer">確認中</span>
+      <span class="card-arrow">›</span>
+    </a>
+
+  </div>
+</main>
+
+<footer>設備点検システム &copy; 2026</footer>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpIRGowSYlple1BEA75lHbxlv_K_LTBw0gFjW0R7swNhKMcW79Boi0BuUl59SJSGRf/exec';
+
+// ===== 日時表示 =====
+function updateDate() {
+  const now = new Date();
+  const w = ['日','月','火','水','木','金','土'];
+  const str = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${w[now.getDay()]}）`;
+  document.getElementById('date-now').textContent = str;
+}
+updateDate();
+
+// ===== シフト判定 =====
+function getCurrentShift() {
+  const h = new Date().getHours();
+  if (h < 7)  return '夜勤（0:00〜6:59）';
+  if (h < 15) return '日勤（7:00〜14:59）';
+  return '準夜（15:00〜23:59）';
+}
+
+// ===== バッジ更新 =====
+function setBadge(id, done) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (done) {
+    el.textContent = '✔ 完了';
+    el.className = 'status-badge badge-done';
+  } else {
+    el.textContent = '⚠ 未点検';
+    el.className = 'status-badge badge-undone';
+  }
+}
+
+// ===== localStorageから即時表示 =====
+function loadFromLocalStorage() {
+  const today = new Date().toISOString().slice(0, 10);
+  const shift = getCurrentShift();
+
+  // シフト表示
+  ['kiki','piping'].forEach(key => {
+    const el = document.getElementById('shift-label-' + key);
+    if (el) el.textContent = shift;
+  });
+  ['boiler','vaporizer'].forEach(key => {
+    const el = document.getElementById('shift-label-' + key);
+    if (el) el.textContent = '本日';
+  });
+
+  // 機器点検（シフト別）
+  const kikiKey = `inspection_app_${today}_${shift}`;
+  const kikiData = localStorage.getItem(kikiKey);
+  if (kikiData) setBadge('badge-kiki', true);
+
+  // 配管点検（シフト別）
+  const pipingKey = `piping_inspection_${today}_${shift}`;
+  const pipingData = localStorage.getItem(pipingKey);
+  if (pipingData) setBadge('badge-piping', true);
+
+  // ボイラー日常（1日1回）
+  const boilerKey = `boiler_daily_${today}`;
+  const boilerData = localStorage.getItem(boilerKey);
+  if (boilerData) setBadge('badge-boiler', true);
+
+  // ベーパライザ日常（1日1回）
+  const vaporizerKey = `vaporizer_daily_${today}`;
+  const vaporizerData = localStorage.getItem(vaporizerKey);
+  if (vaporizerData) setBadge('badge-vaporizer', true);
+}
+
+// ===== GASから最新状況を取得して更新 =====
+async function loadFromGAS() {
+  try {
+    const res = await fetch(GAS_URL);
+    const json = await res.json();
+    if (json.status !== 'ok') return;
+
+    const d = json.data;
+    setBadge('badge-kiki',      d.inspection_app?.done    || false);
+    setBadge('badge-piping',    d.piping_inspection?.done || false);
+    setBadge('badge-boiler',    d.boiler_daily?.done      || false);
+    setBadge('badge-vaporizer', d.vaporizer_daily?.done   || false);
+
+    // シフト表示をGASの返答で更新
+    ['kiki','piping'].forEach(key => {
+      const el = document.getElementById('shift-label-' + key);
+      if (el && json.shift) el.textContent = json.shift;
+    });
+  } catch(e) {
+    // ネットワークエラー時はlocalStorageの表示のまま
+  }
+}
+
+// ===== 初期化：localStorage→即表示、GAS→後から更新 =====
+loadFromLocalStorage();
+loadFromGAS();
+
+// 5分ごとに自動更新
+setInterval(loadFromGAS, 5 * 60 * 1000);
+</script>
+
+</body>
+</html>
