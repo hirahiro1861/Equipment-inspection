@@ -355,7 +355,7 @@
 <header>
   <h1>⚙ 設備点検システム</h1>
   <div class="header-right">
-    <span id="progress-text">0 / 40</span>
+    <span id="progress-text">0 / 44</span>
     <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
     <button onclick="downloadExcel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:5px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;">📥 Excel保存</button>
   </div>
@@ -386,13 +386,16 @@ const GROUPS = [
   {
     name: '汚泥洗浄設備',
     devices: [
+      { tag: 'V-001',  name: '汚泥洗浄槽',              pattern: 'E' },
       { tag: 'A-001A', name: '汚泥洗浄槽 撹拌機A',      pattern: 'A' },
       { tag: 'A-001B', name: '汚泥洗浄槽 撹拌機B',      pattern: 'A' },
       { tag: 'A-001C', name: '汚泥洗浄槽 撹拌機C',      pattern: 'A' },
       { tag: 'P-001',  name: '汚泥洗浄槽 揚水ポンプ',    pattern: 'B' },
+      { tag: 'V-002',  name: '一次洗浄水貯留槽',          pattern: 'E' },
       { tag: 'A-002A', name: '一次洗浄水貯留槽 撹拌機A', pattern: 'A' },
       { tag: 'A-002B', name: '一次洗浄水貯留槽 撹拌機B', pattern: 'A' },
       { tag: 'P-002',  name: '一次洗浄水貯留槽 揚水ポンプ', pattern: 'B' },
+      { tag: 'V-003',  name: '二次洗浄水貯留槽',           pattern: 'E' },
       { tag: 'A-003',  name: '二次洗浄水貯留槽 撹拌機',  pattern: 'A' },
       { tag: 'P-003',  name: '二次洗浄水貯留槽 揚水ポンプ', pattern: 'B' },
     ]
@@ -430,6 +433,7 @@ const GROUPS = [
       { tag: 'U-011',   name: '成型機（ユニット）',   pattern: 'C', subs: ['スクリューコンベア', 'ブリッジ防止', 'スマッシュバー'] },
       { tag: 'T-011',   name: '成型機 サイクロン',    pattern: 'D' },
       { tag: 'P-011',   name: '成型機 油圧ポンプ',    pattern: 'A' },
+      { tag: 'V-012',   name: '集水桝',               pattern: 'E' },
       { tag: 'P-012',   name: '集水桝 揚水ポンプ',    pattern: 'B' },
     ]
   },
@@ -460,6 +464,7 @@ const PATTERNS = {
   B: ['異音', '振動', '揚水状況'],
   C: ['目視', '異臭', '異音', '振動'],
   D: ['液漏れ', '変形'],
+  E: ['目視'],
 };
 
 // ===== State =====
