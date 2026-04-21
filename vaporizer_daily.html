@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>ベーパライザ日常点検表</title>
+<style>
+  :root {
+    --primary: #154360;
+    --primary-light: #1a6da8;
+    --accent: #27ae60;
+    --warn: #e67e22;
+    --danger: #c0392b;
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --border: #d0dae6;
+    --text: #1c2833;
+    --muted: #5d6d7e;
+    --purple: #6c3483;
+    --purple-light: #8e44ad;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* ===== HEADER ===== */
+  header {
+    background: linear-gradient(135deg, #6c3483, #8e44ad);
+    color: #fff;
+    padding: 0 16px;
+    height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .btn-back {
+    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+    color: #fff; border-radius: 5px; padding: 5px 10px; font-size: 13px;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  header h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.05em; }
+  .header-right { font-size: 12px; opacity: 0.85; white-space: nowrap; }
+
+  /* ===== MAIN ===== */
+  main { margin-top: 52px; padding: 20px 16px 80px; max-width: 680px; margin-left: auto; margin-right: auto; }
+
+  /* ===== 判定凡例 ===== */
+  .legend-box {
+    background: #f5eef8; border: 1px solid #d2b4de;
+    border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
+  }
+  .legend-title { font-size: 11px; font-weight: 700; color: var(--purple-light); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .legend-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .legend-badge {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; flex-shrink: 0;
+  }
+  .lg-ok   { background: #d5f5e3; color: #1e8449; border: 1px solid #27ae60; }
+  .lg-warn { background: #fef9e7; color: #d68910; border: 1px solid #e67e22; }
+  .lg-ng   { background: #fdedec; color: #c0392b; border: 1px solid #c0392b; }
+  .lg-na   { background: #eef2f7; color: #5d6d7e; border: 1px solid #aab; }
+
+  /* ===== 注記ボックス ===== */
+  .notice-box {
+    background: #eaf4fb; border: 1px solid #aed6f1;
+    border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
+    font-size: 12px; color: #1a5276; line-height: 1.7;
+  }
+  .notice-box strong { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 6px; color: var(--primary-light); }
+
+  /* ===== 入力カード ===== */
+  .input-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; margin-bottom: 16px;
+  }
+  .input-card-title { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+  .field-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-row { display: flex; flex-direction: column; gap: 6px; }
+  .field-label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .field-row input[type=text],
+  .field-row input[type=date],
+  .field-row input[type=time],
+  .field-row textarea {
+    border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px;
+    font-size: 14px; font-family: inherit; width: 100%; background: #fff; outline: none;
+    transition: border-color 0.15s;
+  }
+  .field-row input:focus, .field-row textarea:focus { border-color: var(--purple-light); }
+  .field-row textarea { resize: vertical; min-height: 56px; }
+
+  /* ===== 点検グループ ===== */
+  .check-group {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; margin-bottom: 16px;
+  }
+  .group-header {
+    background: linear-gradient(135deg, #6c3483, #8e44ad);
+    color: #fff; padding: 10px 16px;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.05em;
+  }
+
+  /* ===== 点検アイテム（判定基準付き） ===== */
+  .check-item {
+    padding: 12px 16px; border-bottom: 1px solid #f0f4f8;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-item-top {
+    display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px;
+  }
+  .check-no {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #f5eef8; color: var(--purple-light);
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .check-label-wrap { flex: 1; }
+  .check-label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 3px; }
+  .check-criteria {
+    font-size: 11px; color: var(--muted);
+    background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 4px; padding: 4px 8px;
+    display: inline-block; line-height: 1.5;
+  }
+  .judge-group { display: flex; gap: 6px; margin-top: 8px; padding-left: 34px; }
+  .judge-group label {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+    border: 2px solid var(--border);
+    cursor: pointer; transition: all 0.15s;
+    user-select: none; flex-shrink: 0; color: var(--muted);
+  }
+  .judge-group input[type=radio] { display: none; }
+  .judge-group label:has(input[value="○"]:checked) { background: #d5f5e3; border-color: #27ae60; color: #1e8449; }
+  .judge-group label:has(input[value="△"]:checked) { background: #fef9e7; border-color: #e67e22; color: #d68910; }
+  .judge-group label:has(input[value="×"]:checked) { background: #fdedec; border-color: #c0392b; color: #c0392b; }
+  .judge-group label:has(input[value="／"]:checked) { background: #eef2f7; border-color: #aab;    color: var(--muted); }
+
+  /* ===== 指示値入力 ===== */
+  .value-input-wrap {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 8px; padding-left: 34px;
+  }
+  .value-input-wrap input[type=number] {
+    width: 110px; border: 1px solid var(--border); border-radius: 5px;
+    padding: 6px 10px; font-size: 15px; font-family: inherit;
+    text-align: right; background: #fff; outline: none;
+    transition: border-color 0.15s;
+  }
+  .value-input-wrap input[type=number]:focus { border-color: var(--purple-light); }
+  .value-input-wrap .unit { font-size: 13px; color: var(--muted); }
+
+  /* ===== ガス積算計（数値入力） ===== */
+  .gas-meter-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; margin-bottom: 16px;
+  }
+  .gas-meter-card .card-title {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .gas-meter-card .criteria-text {
+    font-size: 11px; color: var(--muted); margin-bottom: 12px;
+  }
+  .gas-meter-input {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .gas-meter-input input {
+    border: 1px solid var(--border); border-radius: 5px; padding: 8px 12px;
+    font-size: 18px; font-family: inherit; width: 160px; background: #fff; outline: none;
+    text-align: right; transition: border-color 0.15s;
+  }
+  .gas-meter-input input:focus { border-color: var(--purple-light); }
+  .gas-meter-input span { font-size: 14px; color: var(--muted); }
+
+  /* ===== 備考 ===== */
+  .note-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; margin-bottom: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  /* ===== メディア ===== */
+  .media-area { background: #f0f4f8; border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+  .media-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .media-btns button {
+    background: #fff; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 14px; font-size: 13px; font-family: inherit; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: all 0.15s;
+  }
+  .media-btns button:active { background: var(--purple-light); color: #fff; }
+  .media-preview { display: flex; flex-wrap: wrap; gap: 8px; }
+  .media-thumb { position: relative; width: 80px; height: 80px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); background: #000; }
+  .media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .media-thumb .del-btn { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .media-count { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ===== 送信フッター ===== */
+  .form-footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08); z-index: 50;
+  }
+  .btn-submit {
+    background: linear-gradient(135deg, #6c3483, #8e44ad);
+    color: #fff; border: none; border-radius: 6px;
+    padding: 10px 28px; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+  }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .submit-msg { font-size: 13px; }
+  .submit-msg.ok  { color: var(--accent); }
+  .submit-msg.err { color: var(--danger); }
+  .progress-badge { margin-left: auto; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .progress-badge span { font-weight: 700; color: var(--text); }
+
+  @media (max-width: 500px) {
+    .field-grid-3 { grid-template-columns: 1fr 1fr; }
+    .field-grid-2 { grid-template-columns: 1fr; }
+    .judge-group label { width: 32px; height: 32px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <button class="btn-back" onclick="location.href='index.html'">← 戻る</button>
+    <h1>💧 ベーパライザ日常点検表</h1>
+  </div>
+  <div class="header-right" id="header-date"></div>
+</header>
+
+<main>
+
+  <!-- 判定凡例 -->
+  <div class="legend-box">
+    <div class="legend-title">📋 判定凡例</div>
+    <div class="legend-grid">
+      <div class="legend-item"><div class="legend-badge lg-ok">○</div><span>正常</span></div>
+      <div class="legend-item"><div class="legend-badge lg-warn">△</div><span>処理済</span></div>
+      <div class="legend-item"><div class="legend-badge lg-ng">×</div><span>未処理</span></div>
+      <div class="legend-item"><div class="legend-badge lg-na">／</div><span>該当なし</span></div>
+    </div>
+  </div>
+
+  <!-- 注記 -->
+  <div class="notice-box">
+    <strong>【注記】</strong>
+    1．点検の方法および処置は、取扱説明書の34〜36ページを参照してください。<br>
+    2．ガスメーター積算計の指示は、メーターがついている場合に実施してください。<br>
+    3．始業時の漏洩検査は、LPガスの供給を開始した直後に実施してください。
+  </div>
+
+  <!-- 入力ヘッダー -->
+  <div class="input-card">
+    <div class="input-card-title">点検情報</div>
+    <div class="field-grid-3">
+      <div class="field-row">
+        <label class="field-label">点検日</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="field-row">
+        <label class="field-label">点検時刻</label>
+        <input type="time" id="f-time">
+      </div>
+      <div class="field-row">
+        <label class="field-label">点検者</label>
+        <input type="text" id="f-submitter" placeholder="氏名">
+      </div>
+    </div>
+  </div>
+
+  <!-- 点検グループ（JS生成） -->
+  <div id="check-groups"></div>
+
+  <!-- ガス積算計 -->
+  <div class="gas-meter-card">
+    <div class="card-title">ガス積算計の指示</div>
+    <div class="criteria-text">終業時と比較して著しく積算されていないこと</div>
+    <div class="gas-meter-input">
+      <input type="number" id="f-gas-meter" placeholder="0.00" step="0.01" min="0">
+      <span>m³</span>
+    </div>
+  </div>
+
+  <!-- 感想・特記事項 -->
+  <div class="note-card">
+    <label class="field-label">感想・特記事項</label>
+    <textarea id="f-note" placeholder="異常内容・処置内容・気になったことなど（音声入力可）"></textarea>
+    <label class="field-label" style="margin-top:8px;">画像・動画</label>
+    <div class="media-area">
+      <div class="media-btns">
+        <button type="button" onclick="document.getElementById('f-image').click()">📷 画像を追加</button>
+        <button type="button" onclick="document.getElementById('f-video').click()">🎥 動画を追加（5秒以内）</button>
+      </div>
+      <input type="file" id="f-image" accept="image/*" multiple style="display:none" onchange="addMedia(this,'image')">
+      <input type="file" id="f-video" accept="video/*" style="display:none" onchange="addMedia(this,'video')">
+      <div class="media-preview" id="media-preview"></div>
+      <div class="media-count" id="media-count"></div>
+    </div>
+  </div>
+
+</main>
+
+<div class="form-footer">
+  <button class="btn-submit" id="btn-submit" onclick="submitForm()">保存・送信</button>
+  <span class="submit-msg" id="submit-msg"></span>
+  <div class="progress-badge">回答済み <span id="answered-count">0</span> / <span id="total-count">0</span></div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpIRGowSYlple1BEA75lHbxlv_K_LTBw0gFjW0R7swNhKMcW79Boi0BuUl59SJSGRf/exec';
+
+// ===== 点検項目定義（判定基準付き） =====
+const GROUPS = [
+  {
+    title: '稼働状態検査',
+    items: [
+      { no: 1,  label: '指示圧力 (MPa)',    criteria: '0.18±0.02MPa、閉塞時 0.7MPa以下', valueInput: { unit: 'MPa', placeholder: '0.00' } },
+      { no: 2,  label: '温度計 (℃)',         criteria: '70〜85℃の範囲内',                   valueInput: { unit: '℃',   placeholder: '0.0'  } },
+      { no: 3,  label: '水位計',             criteria: '「下限（赤線）」の水位以上' },
+      { no: 4,  label: 'ガス検知器動作',     criteria: 'ガス検知器の動作または検知液の発泡がないこと' },
+      { no: 5,  label: '表示灯点灯',         criteria: '電源・運転の各ランプが点灯していること' },
+      { no: 6,  label: '異常音の有無',       criteria: 'うなり等異常音のないこと' },
+    ]
+  },
+  {
+    title: '漏洩検査',
+    items: [
+      { no: 7,  label: '一次圧力計（液入口圧力）', criteria: '設定圧力の1.25倍以下または最大閉塞圧力以下', valueInput: { unit: 'MPa', placeholder: '0.00' } },
+      { no: 8,  label: '二次圧力計（気化圧力）',   criteria: '0.18±0.02MPa',                              valueInput: { unit: 'MPa', placeholder: '0.00' } },
+      { no: 9,  label: '三次圧力計（供給圧力）',   criteria: '使用側容器群の圧力計指示とほぼ同じ',         valueInput: { unit: 'MPa', placeholder: '0.00' } },
+    ]
+  },
+  {
+    title: '配管部',
+    items: [
+      { no: 10, label: '振動の有無',   criteria: '配管の揺れを感じる振動がないこと' },
+      { no: 11, label: '着霜の有無',   criteria: 'ガス出口配管部に霜が付着していないこと' },
+    ]
+  },
+  {
+    title: '付属品検査',
+    items: [
+      { no: 12, label: '安全弁・元弁「開」', criteria: 'バルブのハンドルを回して全開のこと' },
+      { no: 13, label: '水位計',             criteria: '「下限（赤線）」の水位以上' },
+      { no: 14, label: '温度計',             criteria: '70〜85℃の範囲内',  valueInput: { unit: '℃', placeholder: '0.0' } },
+      { no: 15, label: '制御盤 電気',        criteria: '電源・運転の各ランプが点灯していること' },
+    ]
+  }
+];
+
+const TOTAL = GROUPS.reduce((s, g) => s + g.items.length, 0);
+document.getElementById('total-count').textContent = TOTAL;
+
+// ===== 初期値セット =====
+const now = new Date();
+document.getElementById('f-date').value = now.toISOString().slice(0, 10);
+document.getElementById('f-time').value = now.toTimeString().slice(0, 5);
+const w = ['日','月','火','水','木','金','土'];
+document.getElementById('header-date').textContent =
+  `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}（${w[now.getDay()]}）`;
+
+// ===== 点検グループ生成 =====
+const container = document.getElementById('check-groups');
+GROUPS.forEach(g => {
+  const div = document.createElement('div');
+  div.className = 'check-group';
+  div.innerHTML = `
+    <div class="group-header">💧 ${g.title}</div>
+    ${g.items.map(item => `
+      <div class="check-item">
+        <div class="check-item-top">
+          <div class="check-no">${item.no}</div>
+          <div class="check-label-wrap">
+            <span class="check-label">${item.label}</span>
+            <span class="check-criteria">基準：${item.criteria}</span>
+          </div>
+        </div>
+        <div class="judge-group">
+          ${['○','△','×','／'].map(v =>
+            `<label><input type="radio" name="item-${item.no}" value="${v}" onchange="updateProgress()"><span>${v}</span></label>`
+          ).join('')}
+        </div>
+        ${item.valueInput ? `
+        <div class="value-input-wrap">
+          <input type="number" id="val-${item.no}" placeholder="${item.valueInput.placeholder}" step="0.01" min="0">
+          <span class="unit">${item.valueInput.unit}</span>
+        </div>` : ''}
+      </div>
+    `).join('')}
+  `;
+  container.appendChild(div);
+});
+
+// ===== 進捗更新 =====
+function updateProgress() {
+  let count = 0;
+  for (let i = 1; i <= TOTAL; i++) {
+    if (document.querySelector(`input[name="item-${i}"]:checked`)) count++;
+  }
+  document.getElementById('answered-count').textContent = count;
+}
+
+// ===== メディア管理 =====
+const mediaFiles = [];
+
+function addMedia(input, type) {
+  Array.from(input.files).forEach(file => {
+    if (type === 'video') {
+      const video = document.createElement('video');
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      video.onloadedmetadata = () => {
+        if (video.duration > 5) { alert('動画は5秒以内にしてください（' + video.duration.toFixed(1) + '秒）'); URL.revokeObjectURL(url); return; }
+        mediaFiles.push({ file, type, url });
+        renderMediaPreview();
+      };
+    } else {
+      const url = URL.createObjectURL(file);
+      mediaFiles.push({ file, type, url });
+      renderMediaPreview();
+    }
+  });
+  input.value = '';
+}
+
+function renderMediaPreview() {
+  const preview = document.getElementById('media-preview');
+  const count   = document.getElementById('media-count');
+  if (!preview) return;
+  preview.innerHTML = mediaFiles.map((m, i) => `
+    <div class="media-thumb">
+      ${m.type === 'image' ? `<img src="${m.url}">` : `<video src="${m.url}" muted playsinline></video>`}
+      <button class="del-btn" onclick="removeMedia(${i})">×</button>
+    </div>
+  `).join('');
+  if (count) count.textContent = mediaFiles.length > 0 ? `${mediaFiles.length}件追加済み` : '';
+}
+
+function removeMedia(i) {
+  URL.revokeObjectURL(mediaFiles[i].url);
+  mediaFiles.splice(i, 1);
+  renderMediaPreview();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ===== 送信処理 =====
+async function submitForm() {
+  const date      = document.getElementById('f-date').value;
+  const time      = document.getElementById('f-time').value;
+  const submitter = document.getElementById('f-submitter').value.trim();
+  const note      = document.getElementById('f-note').value.trim();
+  const gasMeter  = document.getElementById('f-gas-meter').value;
+  const msg       = document.getElementById('submit-msg');
+  const btn       = document.getElementById('btn-submit');
+
+  if (!submitter) { msg.textContent = '点検者名を入力してください'; msg.className = 'submit-msg err'; return; }
+
+  // 全項目収集
+  const items = {};
+  const values = {};
+  let unchecked = [];
+  GROUPS.forEach(g => {
+    g.items.forEach(item => {
+      const checked = document.querySelector(`input[name="item-${item.no}"]:checked`);
+      if (checked) {
+        items[item.label] = checked.value;
+      } else {
+        unchecked.push(item.label);
+      }
+      if (item.valueInput) {
+        const v = document.getElementById('val-' + item.no);
+        if (v && v.value) values[item.label] = v.value + item.valueInput.unit;
+      }
+    });
+  });
+
+  if (unchecked.length > 0) {
+    msg.textContent = `未選択の項目があります：${unchecked.slice(0,2).join('、')}${unchecked.length > 2 ? '…他' : ''}`;
+    msg.className = 'submit-msg err';
+    return;
+  }
+
+  btn.disabled = true;
+  msg.textContent = '送信中...';
+  msg.className = 'submit-msg';
+
+  // localStorage に今日の完了フラグ書き込み
+  const today = new Date().toISOString().slice(0, 10);
+  localStorage.setItem(`vaporizer_daily_${today}`, JSON.stringify({ done: true, ts: Date.now() }));
+
+  const mediaData = [];
+  for (const m of mediaFiles) {
+    const base64 = await fileToBase64(m.file);
+    mediaData.push({ name: m.file.name, type: m.type, mimeType: m.file.type, data: base64 });
+  }
+
+  const payload = {
+    sheetName: 'ベーパライザ記録',
+    date, time, submitter,
+    gasMeter: gasMeter || '',
+    items, values, note,
+    media: mediaData
+  };
+
+  try {
+    const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      msg.textContent = '✔ 保存しました';
+      msg.className = 'submit-msg ok';
+      mediaFiles.length = 0;
+      renderMediaPreview();
+    } else {
+      throw new Error(json.message || 'エラー');
+    }
+  } catch(e) {
+    msg.textContent = '送信エラー: ' + e.message;
+    msg.className = 'submit-msg err';
+  }
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>

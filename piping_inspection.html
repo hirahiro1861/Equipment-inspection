@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>配管点検表</title>
+<style>
+  :root {
+    --primary: #1a5276;
+    --primary-light: #2980b9;
+    --accent: #27ae60;
+    --warn: #e67e22;
+    --danger: #c0392b;
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --border: #d0dae6;
+    --text: #1c2833;
+    --muted: #5d6d7e;
+    --teal: #16a085;
+    --sidebar-w: 260px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* ===== HEADER ===== */
+  header {
+    background: var(--teal);
+    color: #fff;
+    padding: 0 16px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .btn-back {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  header h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.05em; }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  #progress-text { opacity: 0.85; }
+  .progress-bar-wrap { width: 120px; height: 8px; background: rgba(255,255,255,0.25); border-radius: 4px; overflow: hidden; }
+  #progress-bar { height: 100%; background: #2ecc71; border-radius: 4px; transition: width 0.4s; width: 0%; }
+
+  /* ===== LAYOUT ===== */
+  .layout { display: flex; margin-top: 52px; min-height: calc(100vh - 52px); }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 52px; left: 0; bottom: 0;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .device-item {
+    padding: 10px 14px 10px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid #f0f4f8;
+    transition: background 0.15s;
+  }
+  .device-item:hover { background: #eef6ff; }
+  .device-item.active { background: #d6f5ef; border-left: 3px solid var(--teal); padding-left: 17px; }
+  .device-name { font-size: 13px; flex: 1; line-height: 1.4; }
+  .no-badge {
+    font-size: 10px;
+    color: var(--muted);
+    background: #eef2f7;
+    border-radius: 3px;
+    padding: 1px 5px;
+    flex-shrink: 0;
+  }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: #d0dae6; }
+  .status-dot.ok { background: var(--accent); }
+  .status-dot.ng { background: var(--danger); }
+
+  /* ===== MAIN ===== */
+  .main { margin-left: var(--sidebar-w); flex: 1; padding: 24px 20px 40px; }
+  .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; color: var(--muted); text-align: center; gap: 12px; }
+  .welcome .icon { font-size: 48px; opacity: 0.4; }
+  .welcome p { font-size: 15px; }
+
+  /* ===== FORM CARD ===== */
+  .form-card { background: var(--surface); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; max-width: 680px; }
+  .form-header { background: var(--teal); color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+  .form-header .no-tag { font-size: 11px; background: rgba(255,255,255,0.25); padding: 3px 8px; border-radius: 4px; }
+  .form-header h2 { font-size: 15px; flex: 1; }
+  .form-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ===== フィールド ===== */
+  .field-row { display: flex; flex-direction: column; gap: 6px; }
+  .field-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .field-row input[type=text],
+  .field-row input[type=date],
+  .field-row input[type=time],
+  .field-row textarea,
+  .field-row select {
+    border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px;
+    font-size: 14px; font-family: inherit; width: 100%; background: #fff; outline: none;
+    transition: border-color 0.15s;
+  }
+  .field-row input:focus, .field-row textarea:focus { border-color: var(--teal); }
+
+  /* ===== 配管情報 ===== */
+  .piping-info {
+    background: #f0faf8;
+    border: 1px solid #a8d8ce;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+  .piping-info-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+  .piping-info-label { color: var(--muted); font-size: 12px; }
+  .piping-info-value { font-weight: 600; }
+
+  /* ===== 点検項目（目視） ===== */
+  .inspection-item {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .inspection-label { font-size: 14px; font-weight: 600; flex: 0 0 60px; }
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-group label {
+    display: flex; align-items: center; gap: 5px; cursor: pointer;
+    padding: 5px 12px; border: 1px solid var(--border); border-radius: 20px;
+    font-size: 13px; transition: all 0.15s; user-select: none;
+  }
+  .radio-group input[type=radio] { display: none; }
+  .radio-group input[type=radio]:checked + span { font-weight: 700; }
+  .radio-group label:has(input[value="異常なし"]:checked) { background: #d5f5e3; border-color: var(--accent); color: #1e8449; }
+  .radio-group label:has(input[value="要注意"]:checked)  { background: #fef9e7; border-color: var(--warn);   color: #d68910; }
+  .radio-group label:has(input[value="異常あり"]:checked){ background: #fdedec; border-color: var(--danger); color: var(--danger); }
+  .radio-group label:has(input[value="該当なし"]:checked){ background: #eef2f7; border-color: #aab;          color: var(--muted); }
+
+  /* ===== 備考 ===== */
+  .field-row textarea { resize: vertical; min-height: 64px; }
+  .preset-palette { background: #f0f4f8; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+  .preset-group-label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .preset-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .preset-btns button {
+    background: #fff; border: 1px solid var(--border); border-radius: 16px;
+    padding: 5px 12px; font-size: 12px; font-family: inherit; color: var(--text);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .preset-btns button:active { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+  /* ===== メディア ===== */
+  .media-area { background: #f0f4f8; border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+  .media-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .media-btns button {
+    background: #fff; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 14px; font-size: 13px; font-family: inherit; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: all 0.15s;
+  }
+  .media-btns button:active { background: var(--teal); color: #fff; }
+  .media-preview { display: flex; flex-wrap: wrap; gap: 8px; }
+  .media-thumb { position: relative; width: 80px; height: 80px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); background: #000; }
+  .media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .media-thumb .del-btn { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .media-count { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ===== SUBMIT ===== */
+  .form-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .btn-submit { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 10px 28px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .btn-submit:hover { background: #138d75; }
+  .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+  .submit-msg { font-size: 13px; }
+  .submit-msg.ok  { color: var(--accent); }
+  .submit-msg.err { color: var(--danger); }
+
+  /* ===== MOBILE ===== */
+  @media (max-width: 700px) {
+    :root { --sidebar-w: 100%; }
+    .sidebar { position: static; width: 100%; height: auto; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+    .layout { flex-direction: column; }
+    .main { margin-left: 0; padding: 12px; }
+    .header-right .progress-bar-wrap { width: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <button class="btn-back" onclick="location.href='index.html'">← 戻る</button>
+    <h1>🔩 配管点検表</h1>
+  </div>
+  <div class="header-right">
+    <span id="progress-text">0 / 22</span>
+    <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main" id="main">
+    <div class="welcome">
+      <div class="icon">🔩</div>
+      <p>左のメニューから点検する配管を選んでください</p>
+    </div>
+  </main>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpIRGowSYlple1BEA75lHbxlv_K_LTBw0gFjW0R7swNhKMcW79Boi0BuUl59SJSGRf/exec';
+
+// ===== 配管データ =====
+const PIPINGS = [
+  { no: 1,  name: '脱臭配管',             from: '汚泥洗浄設備、脱水機',       to: '既設600Φ脱臭配管',         type: 'U-PVC ダクト管', size: '300、150、100、75、50A' },
+  { no: 2,  name: '洗浄汚泥移送配管',     from: '汚泥洗浄槽',                 to: 'スクリーン',                type: 'U-PVC VP',       size: '50A' },
+  { no: 3,  name: '洗浄水移送配管',       from: '一次・二次洗浄水貯留槽',     to: '汚泥洗浄槽、集水桝',       type: 'U-PVC VP',       size: '65A' },
+  { no: 4,  name: '工水配管',             from: '既設工水配管',               to: '汚泥洗浄設備、脱水機',     type: 'U-PVC VP',       size: '50、30、25A' },
+  { no: 5,  name: 'スクリーンろ液移送配管', from: 'スクリーンろ液タンク',     to: '凝集槽A',                   type: 'U-PVC VP',       size: '40A' },
+  { no: 6,  name: '冷却水移送配管',       from: 'ろ過槽',                     to: '復水器',                    type: 'U-PVC VP',       size: '50A' },
+  { no: 7,  name: '冷却水返送配管1',      from: '復水タンク',                 to: 'ろ過槽',                    type: 'U-PVC VP',       size: '50A' },
+  { no: 8,  name: '冷却水返送配管2',      from: '復水タンク',                 to: '混合槽',                    type: 'U-PVC VP',       size: '50A' },
+  { no: 9,  name: 'LPG供給配管',          from: 'バルクタンク',               to: '高圧蒸気ボイラ',            type: 'SGP',            size: '25A' },
+  { no: 10, name: '脱水ろ液移送配管',     from: '脱水機',                     to: '一次洗浄水貯留槽、集水桝', type: 'U-PVC VU',       size: '65A', note: '自然流下' },
+  { no: 11, name: 'ろ布洗浄水移送配管',   from: '脱水機',                     to: '二次洗浄水貯留槽',          type: 'U-PVC VU',       size: '40A', note: '自然流下' },
+  { no: 12, name: '復水配管',             from: '復水器',                     to: '復水タンク',                type: 'U-PVC',          size: '150、100A', note: '自然流下' },
+  { no: 13, name: 'スチームドレン配管',   from: '乾燥機',                     to: '二次洗浄水貯留槽',          type: 'SGP',            size: '40A' },
+  { no: 14, name: '市水配管',             from: '既設市水配管',               to: '給水タンク',                type: 'HI-PVC VP',      size: '50、40A' },
+  { no: 15, name: 'ボイラースチーム配管', from: '高圧蒸気ボイラ',             to: '乾燥機',                    type: 'SGP',            size: '32A', note: '保温材' },
+  { no: 16, name: 'ボイラーブロー配管',   from: '高圧蒸気ボイラ',             to: '集水桝',                    type: 'SGP',            size: '50A', note: '自然流下' },
+  { no: 17, name: '軟水装置排水配管',     from: '軟水装置',                   to: '集水桝',                    type: 'SGP',            size: '25A', note: '自然流下' },
+  { no: 18, name: '給水タンクオーバーフロー管', from: '給水タンク',           to: '集水桝',                    type: 'U-PVC VU',       size: '25A', note: '自然流下' },
+  { no: 19, name: 'カチオン添加配管',     from: 'カチオン貯槽',               to: '凝集槽A、凝集槽B',          type: 'U-PVC VP',       size: '25A', note: '循環ホース' },
+  { no: 20, name: '集水桝移送配管',       from: '集水桝',                     to: '受ピット',                  type: 'U-PVC VP',       size: '100、75、65、50A', note: 'ルート途中不要配管使用' },
+  { no: 21, name: '再生油添加配管',       from: '再生油貯留タンク',           to: '混練機',                    type: 'ホース',         size: '8A', note: '保温材' },
+  { no: 22, name: '空送配管',             from: '空送ブロワ',                 to: 'サイクロン',                type: 'U-PVC C-PVC SGP', size: '30、32A' },
+];
+
+// ===== State =====
+const results = {};
+let activeNo = null;
+const totalCount = PIPINGS.length;
+const mediaFiles = [];
+
+// ===== シフト判定 =====
+function getCurrentShift() {
+  const h = new Date().getHours();
+  if (h < 7)  return '夜勤（0:00〜6:59）';
+  if (h < 15) return '日勤（7:00〜14:59）';
+  return '準夜（15:00〜23:59）';
+}
+
+// ===== サイドバー生成 =====
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = '';
+  PIPINGS.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'device-item';
+    item.dataset.no = p.no;
+    const r = results[p.no];
+    const dot = r ? (hasNG(r) ? 'ng' : 'ok') : '';
+    item.innerHTML = `
+      <span class="status-dot ${dot}" id="dot-${p.no}"></span>
+      <span class="device-name">No.${p.no} ${p.name}</span>
+      <span class="no-badge">${p.size}</span>
+    `;
+    item.addEventListener('click', () => showForm(p));
+    sidebar.appendChild(item);
+  });
+}
+
+function hasNG(r) {
+  return Object.values(r.items || {}).some(v => v === '異常あり' || v === '要注意');
+}
+
+// ===== 進捗更新 =====
+function updateProgress() {
+  const done = Object.keys(results).length;
+  document.getElementById('progress-text').textContent = `${done} / ${totalCount}`;
+  document.getElementById('progress-bar').style.width = `${(done / totalCount) * 100}%`;
+}
+
+// ===== フォーム表示 =====
+function showForm(p) {
+  activeNo = p.no;
+  document.querySelectorAll('.device-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.device-item[data-no="${p.no}"]`).classList.add('active');
+
+  const saved = results[p.no] || {};
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const currentTime = now.toTimeString().slice(0, 5);
+  const shift = getCurrentShift();
+
+  // 目視ラジオ
+  const savedVal = saved.items?.['目視'] || '';
+  const opts = ['異常なし', '要注意', '異常あり', '該当なし'];
+  const radios = opts.map(o =>
+    `<label><input type="radio" name="item-目視" value="${o}" ${savedVal === o ? 'checked' : ''}><span>${o}</span></label>`
+  ).join('');
+
+  document.getElementById('main').innerHTML = `
+    <div class="form-card">
+      <div class="form-header">
+        <span class="no-tag">No.${p.no}</span>
+        <h2>${p.name}</h2>
+      </div>
+      <div class="form-body">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <div class="field-row">
+            <label class="field-label">点検日</label>
+            <input type="date" id="f-date" value="${saved.date || today}">
+          </div>
+          <div class="field-row">
+            <label class="field-label">点検時刻</label>
+            <input type="time" id="f-time" value="${saved.time || currentTime}">
+          </div>
+          <div class="field-row">
+            <label class="field-label">点検者</label>
+            <input type="text" id="f-submitter" placeholder="氏名" value="${saved.submitter || ''}">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label class="field-label">シフト</label>
+          <input type="text" id="f-shift" value="${saved.shift || shift}" readonly style="background:#f5f5f5;color:var(--muted);">
+        </div>
+
+        <div class="piping-info">
+          <div class="piping-info-grid">
+            <span class="piping-info-label">移送元</span><span class="piping-info-value">${p.from}</span>
+            <span class="piping-info-label">移送先</span><span class="piping-info-value">${p.to}</span>
+            <span class="piping-info-label">管種</span><span class="piping-info-value">${p.type}</span>
+            <span class="piping-info-label">口径</span><span class="piping-info-value">${p.size}${p.note ? '　<span style="color:var(--muted);font-weight:400;">'+p.note+'</span>' : ''}</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="inspection-item">
+            <span class="inspection-label">目視</span>
+            <div class="radio-group">${radios}</div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label class="field-label">備考</label>
+          <div class="preset-palette">
+            <div class="preset-group-label">状態</div>
+            <div class="preset-btns">
+              <button type="button" onclick="insertPreset('漏液')">漏液</button>
+              <button type="button" onclick="insertPreset('接合部抜け')">接合部抜け</button>
+              <button type="button" onclick="insertPreset('亀裂')">亀裂</button>
+              <button type="button" onclick="insertPreset('破損')">破損</button>
+              <button type="button" onclick="insertPreset('変形')">変形</button>
+              <button type="button" onclick="insertPreset('パッキン・ガスケット不良')">パッキン・ガスケット不良</button>
+              <button type="button" onclick="insertPreset('閉塞')">閉塞</button>
+            </div>
+            <div class="preset-group-label" style="margin-top:8px">処置・対応</div>
+            <div class="preset-btns">
+              <button type="button" onclick="insertPreset('要監視')">要監視</button>
+              <button type="button" onclick="insertPreset('次回点検時に再確認')">次回点検時に再確認</button>
+              <button type="button" onclick="insertPreset('上長に報告済み')">上長に報告済み</button>
+              <button type="button" onclick="insertPreset('増し締め実施')">増し締め実施</button>
+              <button type="button" onclick="insertPreset('部品交換要')">部品交換要</button>
+              <button type="button" onclick="insertPreset('業者手配済み')">業者手配済み</button>
+            </div>
+          </div>
+          <textarea id="f-note" placeholder="異常内容・処置内容など（音声入力可）">${saved.note || ''}</textarea>
+        </div>
+
+        <div class="field-row">
+          <label class="field-label">画像・動画</label>
+          <div class="media-area">
+            <div class="media-btns">
+              <button type="button" onclick="document.getElementById('f-image').click()">📷 画像を追加</button>
+              <button type="button" onclick="document.getElementById('f-video').click()">🎥 動画を追加（5秒以内）</button>
+            </div>
+            <input type="file" id="f-image" accept="image/*" multiple style="display:none" onchange="addMedia(this,'image')">
+            <input type="file" id="f-video" accept="video/*" style="display:none" onchange="addMedia(this,'video')">
+            <div class="media-preview" id="media-preview"></div>
+            <div class="media-count" id="media-count"></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="form-footer">
+        <button class="btn-submit" id="btn-submit" onclick="submitForm(${p.no})">保存・送信</button>
+        <span class="submit-msg" id="submit-msg"></span>
+      </div>
+    </div>
+  `;
+
+  // メディアリセット
+  mediaFiles.length = 0;
+  renderMediaPreview();
+}
+
+// ===== メディア管理 =====
+function addMedia(input, type) {
+  Array.from(input.files).forEach(file => {
+    if (type === 'video') {
+      const video = document.createElement('video');
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      video.onloadedmetadata = () => {
+        if (video.duration > 5) { alert('動画は5秒以内にしてください（' + video.duration.toFixed(1) + '秒）'); URL.revokeObjectURL(url); return; }
+        mediaFiles.push({ file, type, url });
+        renderMediaPreview();
+      };
+    } else {
+      const url = URL.createObjectURL(file);
+      mediaFiles.push({ file, type, url });
+      renderMediaPreview();
+    }
+  });
+  input.value = '';
+}
+
+function renderMediaPreview() {
+  const preview = document.getElementById('media-preview');
+  const count = document.getElementById('media-count');
+  if (!preview) return;
+  preview.innerHTML = mediaFiles.map((m, i) => `
+    <div class="media-thumb">
+      ${m.type === 'image' ? `<img src="${m.url}">` : `<video src="${m.url}" muted playsinline></video>`}
+      <button class="del-btn" onclick="removeMedia(${i})">×</button>
+    </div>
+  `).join('');
+  if (count) count.textContent = mediaFiles.length > 0 ? `${mediaFiles.length}件追加済み` : '';
+}
+
+function removeMedia(i) {
+  URL.revokeObjectURL(mediaFiles[i].url);
+  mediaFiles.splice(i, 1);
+  renderMediaPreview();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ===== 送信処理 =====
+async function submitForm(no) {
+  const p = PIPINGS.find(x => x.no === no);
+  const date      = document.getElementById('f-date').value;
+  const time      = document.getElementById('f-time').value;
+  const submitter = document.getElementById('f-submitter').value.trim();
+  const shift     = document.getElementById('f-shift').value;
+  const note      = document.getElementById('f-note').value.trim();
+  const msg       = document.getElementById('submit-msg');
+  const btn       = document.getElementById('btn-submit');
+
+  if (!submitter) { msg.textContent = '点検者名を入力してください'; msg.className = 'submit-msg err'; return; }
+
+  const checked = document.querySelector('input[name="item-目視"]:checked');
+  if (!checked) { msg.textContent = '目視の結果を選択してください'; msg.className = 'submit-msg err'; return; }
+
+  const items = { '目視': checked.value };
+
+  // ローカル保存
+  results[no] = { date, time, shift, submitter, items, note };
+
+  // サイドバードット更新
+  const dot = document.getElementById(`dot-${no}`);
+  if (dot) dot.className = `status-dot ${hasNG(results[no]) ? 'ng' : 'ok'}`;
+  updateProgress();
+
+  // localStorage に完了フラグ書き込み
+  saveToLocalStorage();
+
+  btn.disabled = true;
+  msg.textContent = '送信中...';
+  msg.className = 'submit-msg';
+
+  const mediaData = [];
+  for (const m of mediaFiles) {
+    const base64 = await fileToBase64(m.file);
+    mediaData.push({ name: m.file.name, type: m.type, mimeType: m.file.type, data: base64 });
+  }
+
+  const payload = {
+    sheetName: '配管点検記録',   // GASで振り分けに使用
+    date, time, shift, submitter,
+    pipeNo:   p.no,
+    pipeName: p.name,
+    items, note,
+    media: mediaData
+  };
+
+  try {
+    const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      msg.textContent = '✔ 保存しました';
+      msg.className = 'submit-msg ok';
+      mediaFiles.length = 0;
+      renderMediaPreview();
+    } else {
+      throw new Error(json.message || 'エラー');
+    }
+  } catch(e) {
+    msg.textContent = '送信エラー: ' + e.message;
+    msg.className = 'submit-msg err';
+  }
+  btn.disabled = false;
+}
+
+// ===== localStorage =====
+function saveToLocalStorage() {
+  const today = new Date().toISOString().slice(0, 10);
+  const shift = getCurrentShift();
+  const key = `piping_inspection_${today}_${shift}`;
+  const done = Object.keys(results).length;
+  localStorage.setItem(key, JSON.stringify({ done, total: totalCount, ts: Date.now() }));
+}
+
+// ===== 定型文挿入 =====
+function insertPreset(text) {
+  const ta = document.getElementById('f-note');
+  if (!ta) return;
+  ta.value = ta.value ? ta.value + '、' + text : text;
+  ta.focus();
+}
+
+// ===== 初期化 =====
+buildSidebar();
+updateProgress();
+</script>
+</body>
+</html>

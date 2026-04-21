@@ -353,7 +353,10 @@
 
 <!-- ===== HEADER ===== -->
 <header>
-  <h1>⚙ 設備点検システム</h1>
+  <div class="header-left" style="display:flex;align-items:center;gap:10px;">
+    <button onclick="location.href='index.html'" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:5px;padding:5px 10px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;">← 戻る</button>
+    <h1>🔧 機器点検表</h1>
+  </div>
   <div class="header-right">
     <span id="progress-text">0 / 44</span>
     <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
@@ -379,7 +382,7 @@
 
 <script>
 // ===== GAS URL（デプロイ後に書き換え） =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyNSCRLjBoGQKByYG6iDcWyUscRSY7cq1KbkDCrLslbYw9sHmk4LzRhAmvtmX3H0_H2/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpIRGowSYlple1BEA75lHbxlv_K_LTBw0gFjW0R7swNhKMcW79Boi0BuUl59SJSGRf/exec';
 
 // ===== 機器データ =====
 const GROUPS = [
@@ -741,6 +744,9 @@ async function submitForm(tag) {
   if (dot) dot.className = `status-dot ${hasNG(results[tag]) ? 'ng' : 'ok'}`;
   updateProgress();
 
+  // localStorage にシフト別完了フラグ書き込み
+  saveToLocalStorage();
+
   // GAS送信
   btn.disabled = true;
   msg.textContent = '送信中...';
@@ -795,6 +801,23 @@ async function submitForm(tag) {
     }
   }
   btn.disabled = false;
+}
+
+// ===== シフト判定 =====
+function getCurrentShift() {
+  const h = new Date().getHours();
+  if (h < 7)  return '夜勤（0:00〜6:59）';
+  if (h < 15) return '日勤（7:00〜14:59）';
+  return '準夜（15:00〜23:59）';
+}
+
+// ===== localStorage 書き込み =====
+function saveToLocalStorage() {
+  const today = new Date().toISOString().slice(0, 10);
+  const shift = getCurrentShift();
+  const done  = Object.keys(results).length;
+  const key   = `inspection_app_${today}_${shift}`;
+  localStorage.setItem(key, JSON.stringify({ done, total: totalCount, ts: Date.now() }));
 }
 
 // ===== Excelダウンロード =====
