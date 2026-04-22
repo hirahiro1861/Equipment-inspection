@@ -519,11 +519,13 @@
       border-bottom: 1px solid var(--border);
       overflow-y: auto;
     }
+    /* フォーム未表示時はサイドバーを全画面 */
+    .layout:not(.has-form) .sidebar { max-height: calc(100vh - 52px); }
     .layout { flex-direction: column; }
     .main { margin-left: 0; padding: 12px; }
+    .main:not(.active) .form-card { display: none; }
     .header-right .progress-bar-wrap { width: 80px; }
-    /* スマホではウェルカム画面を非表示 */
-    .welcome { display: none; }
+    /* スマホでもウェルカム画面を表示（機器未選択時） */
     /* フォームが表示されているときはサイドバーを縮小 */
     .sidebar.has-form {
       max-height: 200px;
@@ -789,6 +791,8 @@ function showForm(dev) {
   activeTag = dev.tag;
   // サイドバーをフォーム表示時に縮小（スマホ）
   document.getElementById('sidebar').classList.add('has-form');
+  document.querySelector('.layout').classList.add('has-form');
+  document.getElementById('main').classList.add('active');
 
   // サイドバーのactive更新
   document.querySelectorAll('.device-item').forEach(el => el.classList.remove('active'));
