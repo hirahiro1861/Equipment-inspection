@@ -548,7 +548,7 @@
 
 <script>
 // ===== GAS URL（デプロイ後に書き換え） =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpIRGowSYlple1BEA75lHbxlv_K_LTBw0gFjW0R7swNhKMcW79Boi0BuUl59SJSGRf/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbww9ISmeHo-cbwlfwVTHOsP2eHacHIprniNiK5Q-nem-OL2QDlqnkv5csipdReeRYSs1w/exec';
 
 // ===== 機器データ =====
 const GROUPS = [
@@ -1169,7 +1169,7 @@ async function submitForm(tag) {
   }
 
   const payload = {
-    sheetName: '点検記録',
+    sheetName: '機器点検記録',
     date, time, submitter,
     tag, deviceName: dev.name, pattern: dev.pattern,
     items, note, media: mediaData
