@@ -88,8 +88,15 @@
     flex-shrink: 0;
   }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: #d0dae6; }
-  .status-dot.ok { background: var(--accent); }
-  .status-dot.ng { background: var(--danger); }
+  .status-dot.ok   { background: var(--accent); }
+  .status-dot.ng   { background: var(--danger); }
+  .status-dot.temp { background: #e67e22; }
+  .btn-submit { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .btn-submit:hover { background: #138d75; }
+  .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+  .btn-temp-save { background: #fff; color: var(--teal); border: 2px solid var(--teal); border-radius: 6px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .btn-temp-save:hover { background: #eef9f6; }
+  .btn-temp-save:disabled { opacity: 0.4; cursor: not-allowed; }
 
   /* ===== 点検済バッジ ===== */
   .done-badge {
@@ -97,8 +104,9 @@
     padding: 2px 6px; border-radius: 8px;
     flex-shrink: 0; white-space: nowrap;
   }
-  .done-badge.ok { background: #d5f5e3; color: #1e8449; border: 1px solid #27ae60; }
-  .done-badge.ng { background: #fdedec; color: #c0392b; border: 1px solid #c0392b; }
+  .done-badge.ok   { background: #d5f5e3; color: #1e8449; border: 1px solid #27ae60; }
+  .done-badge.ng   { background: #fdedec; color: #c0392b; border: 1px solid #c0392b; }
+  .done-badge.temp { background: #fef9e7; color: #d68910; border: 1px solid #e67e22; }
 
   /* ===== MAIN ===== */
   .main { margin-left: var(--sidebar-w); flex: 1; padding: 24px 20px 40px; }
@@ -297,7 +305,9 @@ const PIPINGS = [
 ];
 
 // ===== State =====
-const results = {};
+const sentResults = {}; // 送信済み
+const tempResults = {}; // 一時保存済み（未送信）
+const results     = {}; // フォーム表示用（sent優先、なければtemp）
 let activeNo = null;
 const totalCount = PIPINGS.length;
 const mediaFiles = [];
@@ -310,22 +320,29 @@ function getCurrentShift() {
   return '準夜（15:00〜23:59）';
 }
 
-// ===== localStorage キー（配管個別） =====
-function getPipingStorageKey(no) {
+// ===== localStorageキー =====
+function getStorageKey(no, type) {
   const today = new Date().toISOString().slice(0, 10);
   const shift = getCurrentShift();
-  return `piping_${today}_${shift}_${no}`;
+  return `piping_${type}_${today}_${shift}_${no}`;
 }
 
 // ===== localStorage から復元 =====
 function restoreFromLocalStorage() {
   PIPINGS.forEach(p => {
-    const key = getPipingStorageKey(p.no);
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      results[p.no] = JSON.parse(saved);
-    }
+    const sentData = localStorage.getItem(getStorageKey(p.no, 'sent'));
+    const tempData = localStorage.getItem(getStorageKey(p.no, 'temp'));
+    if (sentData) { sentResults[p.no] = JSON.parse(sentData); results[p.no] = JSON.parse(sentData); }
+    else if (tempData) { tempResults[p.no] = JSON.parse(tempData); results[p.no] = JSON.parse(tempData); }
   });
+}
+
+// ===== index.html用フラグ保存 =====
+function saveIndexFlag() {
+  const today = new Date().toISOString().slice(0, 10);
+  const shift = getCurrentShift();
+  const key = `piping_inspection_${today}_${shift}`;
+  localStorage.setItem(key, JSON.stringify({ done: Object.keys(sentResults).length, total: totalCount, ts: Date.now() }));
 }
 
 // ===== サイドバー生成 =====
@@ -336,14 +353,19 @@ function buildSidebar() {
     const item = document.createElement('div');
     item.className = 'device-item';
     item.dataset.no = p.no;
-    const r = results[p.no];
-    const isNG = r && hasNG(r);
-    const isDone = !!r;
-    const badgeHTML = isDone
-      ? `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`
-      : '';
+    const sent = sentResults[p.no];
+    const temp = tempResults[p.no];
+    let dotClass = '', badgeHTML = '';
+    if (sent) {
+      const isNG = hasNG(sent);
+      dotClass  = isNG ? 'ng' : 'ok';
+      badgeHTML = `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`;
+    } else if (temp) {
+      dotClass  = 'temp';
+      badgeHTML = `<span class="done-badge temp">📝 入力中</span>`;
+    }
     item.innerHTML = `
-      <span class="status-dot ${isDone ? (isNG ? 'ng' : 'ok') : ''}" id="dot-${p.no}"></span>
+      <span class="status-dot ${dotClass}" id="dot-${p.no}"></span>
       <span class="device-name">No.${p.no} ${p.name}</span>
       <span id="badge-${p.no}">${badgeHTML}</span>
       <span class="no-badge">${p.size}</span>
@@ -357,9 +379,9 @@ function hasNG(r) {
   return Object.values(r.items || {}).some(v => v === '異常あり' || v === '要注意');
 }
 
-// ===== 進捗更新 =====
+// ===== 進捗更新（送信済み件数） =====
 function updateProgress() {
-  const done = Object.keys(results).length;
+  const done = Object.keys(sentResults).length;
   document.getElementById('progress-text').textContent = `${done} / ${totalCount}`;
   document.getElementById('progress-bar').style.width = `${(done / totalCount) * 100}%`;
 }
@@ -475,7 +497,8 @@ function showForm(p) {
 
       </div>
       <div class="form-footer">
-        <button class="btn-submit" id="btn-submit" onclick="submitForm(${p.no})">保存・送信</button>
+        <button class="btn-temp-save" id="btn-temp" onclick="tempSaveForm(${p.no})">一時保存</button>
+        <button class="btn-submit" id="btn-submit" onclick="submitForm(${p.no})">送信</button>
         <span class="submit-msg" id="submit-msg"></span>
       </div>
     </div>
@@ -552,17 +575,7 @@ async function submitForm(no) {
   if (!checked) { msg.textContent = '目視の結果を選択してください'; msg.className = 'submit-msg err'; return; }
 
   const items = { '目視': checked.value };
-
-  // ローカル保存
-  results[no] = { date, time, shift, submitter, items, note };
-
-  // サイドバードット更新
-  const dot = document.getElementById(`dot-${no}`);
-  if (dot) dot.className = `status-dot ${hasNG(results[no]) ? 'ng' : 'ok'}`;
-  updateProgress();
-
-  // localStorage に完了フラグ書き込み
-  saveToLocalStorage();
+  const data  = { date, time, shift, submitter, items, note, pipeName: p.name };
 
   btn.disabled = true;
   msg.textContent = '送信中...';
@@ -575,26 +588,28 @@ async function submitForm(no) {
   }
 
   const payload = {
-    sheetName: '配管点検記録',   // GASで振り分けに使用
+    sheetName: '配管点検記録',
     date, time, shift, submitter,
-    pipeNo:   p.no,
-    pipeName: p.name,
-    items, note,
-    media: mediaData
+    pipeNo: p.no, pipeName: p.name,
+    items, note, media: mediaData
   };
 
   try {
-    const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+    const res  = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
     const json = await res.json();
     if (json.status === 'ok') {
-      msg.textContent = '✔ 保存しました';
+      msg.textContent = '✔ 送信しました';
       msg.className = 'submit-msg ok';
       mediaFiles.length = 0;
       renderMediaPreview();
-      // localStorageに個別保存してバッジ更新
-      localStorage.setItem(getPipingStorageKey(no), JSON.stringify(results[no]));
+      sentResults[no] = data;
+      results[no]     = data;
+      delete tempResults[no];
+      localStorage.setItem(getStorageKey(no, 'sent'), JSON.stringify(data));
+      localStorage.removeItem(getStorageKey(no, 'temp'));
       updateSidebarBadge(no);
-      saveToLocalStorage();
+      updateProgress();
+      saveIndexFlag();
     } else {
       throw new Error(json.message || 'エラー');
     }
@@ -607,27 +622,114 @@ async function submitForm(no) {
 
 // ===== サイドバーバッジ更新 =====
 function updateSidebarBadge(no) {
-  const r = results[no];
-  const isNG = r && hasNG(r);
+  const sent = sentResults[no];
+  const temp = tempResults[no];
   const badgeEl = document.getElementById(`badge-${no}`);
   const dotEl   = document.getElementById(`dot-${no}`);
-  if (badgeEl) {
-    badgeEl.innerHTML = r
-      ? `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`
-      : '';
+  let dotClass = '', badgeHTML = '';
+  if (sent) {
+    const isNG = hasNG(sent);
+    dotClass  = isNG ? 'ng' : 'ok';
+    badgeHTML = `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`;
+  } else if (temp) {
+    dotClass  = 'temp';
+    badgeHTML = `<span class="done-badge temp">📝 入力中</span>`;
   }
-  if (dotEl) {
-    dotEl.className = `status-dot ${r ? (isNG ? 'ng' : 'ok') : ''}`;
-  }
+  if (badgeEl) badgeEl.innerHTML = badgeHTML;
+  if (dotEl)   dotEl.className = `status-dot ${dotClass}`;
 }
 
-// ===== localStorage（index.html用） =====
-function saveToLocalStorage() {
-  const today = new Date().toISOString().slice(0, 10);
-  const shift = getCurrentShift();
-  const key = `piping_inspection_${today}_${shift}`;
-  const done = Object.keys(results).length;
-  localStorage.setItem(key, JSON.stringify({ done, total: totalCount, ts: Date.now() }));
+// ===== 一時保存処理 =====
+function tempSaveForm(no) {
+  const p = PIPINGS.find(x => x.no === no);
+  const date      = document.getElementById('f-date').value;
+  const time      = document.getElementById('f-time').value;
+  const submitter = document.getElementById('f-submitter').value;
+  const shift     = document.getElementById('f-shift').value;
+  const note      = document.getElementById('f-note').value.trim();
+  const msg       = document.getElementById('submit-msg');
+
+  if (!submitter) { msg.textContent = '点検者名を入力してください'; msg.className = 'submit-msg err'; return; }
+
+  const checked = document.querySelector('input[name="item-目視"]:checked');
+  const items = { '目視': checked ? checked.value : '' };
+
+  const data = { date, time, shift, submitter, items, note, pipeName: p.name, _temp: true };
+  tempResults[no] = data;
+  results[no]     = data;
+
+  localStorage.setItem(getStorageKey(no, 'temp'), JSON.stringify(data));
+  updateSidebarBadge(no);
+  updateProgress();
+  saveIndexFlag();
+
+  msg.textContent = '📝 一時保存しました';
+  msg.className = 'submit-msg ok';
+}
+
+// ===== 送信処理 =====
+async function submitForm(no) {
+  const p = PIPINGS.find(x => x.no === no);
+  const date      = document.getElementById('f-date').value;
+  const time      = document.getElementById('f-time').value;
+  const submitter = document.getElementById('f-submitter').value;
+  const shift     = document.getElementById('f-shift').value;
+  const note      = document.getElementById('f-note').value.trim();
+  const msg       = document.getElementById('submit-msg');
+  const btn       = document.getElementById('btn-submit');
+
+  if (!submitter) { msg.textContent = '点検者名を入力してください'; msg.className = 'submit-msg err'; return; }
+
+  const checked = document.querySelector('input[name="item-目視"]:checked');
+  if (!checked) { msg.textContent = '目視の結果を選択してください'; msg.className = 'submit-msg err'; return; }
+
+  const items = { '目視': checked.value };
+  const data  = { date, time, shift, submitter, items, note, pipeName: p.name };
+
+  btn.disabled = true;
+  msg.textContent = '送信中...';
+  msg.className = 'submit-msg';
+
+  const mediaData = [];
+  for (const m of mediaFiles) {
+    const base64 = await fileToBase64(m.file);
+    mediaData.push({ name: m.file.name, type: m.type, mimeType: m.file.type, data: base64 });
+  }
+
+  const payload = {
+    sheetName: '配管点検記録',
+    date, time, shift, submitter,
+    pipeNo: p.no, pipeName: p.name,
+    items, note, media: mediaData
+  };
+
+  try {
+    const res  = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      msg.textContent = '✔ 送信しました';
+      msg.className = 'submit-msg ok';
+      mediaFiles.length = 0;
+      renderMediaPreview();
+
+      // 送信済みに昇格
+      sentResults[no] = data;
+      results[no]     = data;
+      delete tempResults[no];
+
+      localStorage.setItem(getStorageKey(no, 'sent'), JSON.stringify(data));
+      localStorage.removeItem(getStorageKey(no, 'temp'));
+      updateSidebarBadge(no);
+      updateProgress();
+      saveIndexFlag();
+    } else {
+      throw new Error(json.message || 'エラー');
+    }
+  } catch(e) {
+    msg.textContent = '送信エラー: ' + e.message;
+    msg.className = 'submit-msg err';
+  }
+  btn.disabled = false;
 }
 
 // ===== 定型文挿入 =====
