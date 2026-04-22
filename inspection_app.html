@@ -484,13 +484,20 @@
       position: static;
       width: 100%;
       height: auto;
-      max-height: 200px;
+      max-height: calc(100vh - 52px);
       border-right: none;
       border-bottom: 1px solid var(--border);
+      overflow-y: auto;
     }
     .layout { flex-direction: column; }
     .main { margin-left: 0; padding: 12px; }
     .header-right .progress-bar-wrap { width: 80px; }
+    /* スマホではウェルカム画面を非表示 */
+    .welcome { display: none; }
+    /* フォームが表示されているときはサイドバーを縮小 */
+    .sidebar.has-form {
+      max-height: 200px;
+    }
   }
 </style>
 </head>
@@ -725,9 +732,26 @@ function updateProgress() {
   document.getElementById('progress-bar').style.width = `${(done / totalCount) * 100}%`;
 }
 
+// ===== 保存済みデータに異常があるか判定 =====
+function hasAnyAbnormal(saved) {
+  if (!saved || !saved.items) return false;
+  return Object.values(saved.items).some(v => v === '要注意' || v === '異常あり');
+}
+
+// ===== 全項目異常なしか確認して備考・画像を表示切替 =====
+function checkAllNormal() {
+  const extra = document.getElementById('extra-section');
+  if (!extra) return;
+  const radios = document.querySelectorAll('.inspection-grid input[type=radio]:checked');
+  const hasAbnormal = Array.from(radios).some(r => r.value === '要注意' || r.value === '異常あり');
+  extra.style.display = hasAbnormal ? '' : 'none';
+}
+
 // ===== フォーム表示 =====
 function showForm(dev) {
   activeTag = dev.tag;
+  // サイドバーをフォーム表示時に縮小（スマホ）
+  document.getElementById('sidebar').classList.add('has-form');
 
   // サイドバーのactive更新
   document.querySelectorAll('.device-item').forEach(el => el.classList.remove('active'));
@@ -743,7 +767,7 @@ function showForm(dev) {
     const savedVal = saved.items?.[item] || '';
     const opts = ['異常なし', '要注意', '異常あり', '該当なし'];
     const radios = opts.map(o =>
-      `<label><input type="radio" name="item-${item}" value="${o}" ${savedVal === o ? 'checked' : ''}><span>${o}</span></label>`
+      `<label><input type="radio" name="item-${item}" value="${o}" ${savedVal === o ? 'checked' : ''} onchange="checkAllNormal()"><span>${o}</span></label>`
     ).join('');
     return `
       <div class="inspection-item">
@@ -795,51 +819,53 @@ function showForm(dev) {
         <div class="inspection-grid">
           ${itemsHTML}
         </div>
-        <div class="field-row">
-          <label class="field-label">備考</label>
-          <div class="preset-palette">
-            <div class="preset-group-label">異常・状態</div>
-            <div class="preset-btns">
-              <button type="button" onclick="insertPreset('軸受け過熱')">軸受け過熱</button>
-              <button type="button" onclick="insertPreset('メカシール漏れ')">メカシール漏れ</button>
-              <button type="button" onclick="insertPreset('グランドパッキン漏れ')">グランドパッキン漏れ</button>
-              <button type="button" onclick="insertPreset('オイル滲み')">オイル滲み</button>
-              <button type="button" onclick="insertPreset('異常振動あり')">異常振動あり</button>
-              <button type="button" onclick="insertPreset('異音（金属音）')">異音（金属音）</button>
-              <button type="button" onclick="insertPreset('異音（キャビテーション）')">異音（キャビテーション）</button>
-              <button type="button" onclick="insertPreset('凝集不良')">凝集不良</button>
-              <button type="button" onclick="insertPreset('スカム発生')">スカム発生</button>
-              <button type="button" onclick="insertPreset('汚泥堆積')">汚泥堆積</button>
-              <button type="button" onclick="insertPreset('フロック崩れ')">フロック崩れ</button>
-              <button type="button" onclick="insertPreset('閉塞気味')">閉塞気味</button>
-              <button type="button" onclick="insertPreset('ベルト断裂')">ベルト断裂</button>
-              <button type="button" onclick="insertPreset('ベルト亀裂')">ベルト亀裂</button>
-              <button type="button" onclick="insertPreset('オーバーフロー')">オーバーフロー</button>
+        <div id="extra-section" style="${hasAnyAbnormal(saved) ? '' : 'display:none'}">
+          <div class="field-row">
+            <label class="field-label">備考</label>
+            <div class="preset-palette">
+              <div class="preset-group-label">異常・状態</div>
+              <div class="preset-btns">
+                <button type="button" onclick="insertPreset('軸受け過熱')">軸受け過熱</button>
+                <button type="button" onclick="insertPreset('メカシール漏れ')">メカシール漏れ</button>
+                <button type="button" onclick="insertPreset('グランドパッキン漏れ')">グランドパッキン漏れ</button>
+                <button type="button" onclick="insertPreset('オイル滲み')">オイル滲み</button>
+                <button type="button" onclick="insertPreset('異常振動あり')">異常振動あり</button>
+                <button type="button" onclick="insertPreset('異音（金属音）')">異音（金属音）</button>
+                <button type="button" onclick="insertPreset('異音（キャビテーション）')">異音（キャビテーション）</button>
+                <button type="button" onclick="insertPreset('凝集不良')">凝集不良</button>
+                <button type="button" onclick="insertPreset('スカム発生')">スカム発生</button>
+                <button type="button" onclick="insertPreset('汚泥堆積')">汚泥堆積</button>
+                <button type="button" onclick="insertPreset('フロック崩れ')">フロック崩れ</button>
+                <button type="button" onclick="insertPreset('閉塞気味')">閉塞気味</button>
+                <button type="button" onclick="insertPreset('ベルト断裂')">ベルト断裂</button>
+                <button type="button" onclick="insertPreset('ベルト亀裂')">ベルト亀裂</button>
+                <button type="button" onclick="insertPreset('オーバーフロー')">オーバーフロー</button>
+              </div>
+              <div class="preset-group-label" style="margin-top:8px">処置・対応</div>
+              <div class="preset-btns">
+                <button type="button" onclick="insertPreset('要監視')">要監視</button>
+                <button type="button" onclick="insertPreset('次回点検時に再確認')">次回点検時に再確認</button>
+                <button type="button" onclick="insertPreset('上長に報告済み')">上長に報告済み</button>
+                <button type="button" onclick="insertPreset('増し締め実施')">増し締め実施</button>
+                <button type="button" onclick="insertPreset('グリスアップ実施')">グリスアップ実施</button>
+                <button type="button" onclick="insertPreset('部品交換要')">部品交換要</button>
+                <button type="button" onclick="insertPreset('業者手配済み')">業者手配済み</button>
+              </div>
             </div>
-            <div class="preset-group-label" style="margin-top:8px">処置・対応</div>
-            <div class="preset-btns">
-              <button type="button" onclick="insertPreset('要監視')">要監視</button>
-              <button type="button" onclick="insertPreset('次回点検時に再確認')">次回点検時に再確認</button>
-              <button type="button" onclick="insertPreset('上長に報告済み')">上長に報告済み</button>
-              <button type="button" onclick="insertPreset('増し締め実施')">増し締め実施</button>
-              <button type="button" onclick="insertPreset('グリスアップ実施')">グリスアップ実施</button>
-              <button type="button" onclick="insertPreset('部品交換要')">部品交換要</button>
-              <button type="button" onclick="insertPreset('業者手配済み')">業者手配済み</button>
-            </div>
+            <textarea id="f-note" placeholder="異常内容・処置内容など（タップで定型文挿入 / 音声入力可）">${saved.note || ''}</textarea>
           </div>
-          <textarea id="f-note" placeholder="異常内容・処置内容など（タップで定型文挿入 / 音声入力可）">${saved.note || ''}</textarea>
-        </div>
-        <div class="field-row">
-          <label class="field-label">画像・動画</label>
-          <div class="media-area">
-            <div class="media-btns">
-              <button type="button" onclick="document.getElementById('f-image').click()">📷 画像を追加</button>
-              <button type="button" onclick="document.getElementById('f-video').click()">🎥 動画を追加（5秒以内）</button>
+          <div class="field-row">
+            <label class="field-label">画像・動画</label>
+            <div class="media-area">
+              <div class="media-btns">
+                <button type="button" onclick="document.getElementById('f-image').click()">📷 画像を追加</button>
+                <button type="button" onclick="document.getElementById('f-video').click()">🎥 動画を追加（5秒以内）</button>
+              </div>
+              <input type="file" id="f-image" accept="image/*" multiple style="display:none" onchange="addMedia(this,'image')">
+              <input type="file" id="f-video" accept="video/*" style="display:none" onchange="addMedia(this,'video')">
+              <div class="media-preview" id="media-preview"></div>
+              <div class="media-count" id="media-count"></div>
             </div>
-            <input type="file" id="f-image" accept="image/*" multiple style="display:none" onchange="addMedia(this,'image')">
-            <input type="file" id="f-video" accept="video/*" style="display:none" onchange="addMedia(this,'video')">
-            <div class="media-preview" id="media-preview"></div>
-            <div class="media-count" id="media-count"></div>
           </div>
         </div>
       <div class="form-footer">
@@ -916,7 +942,7 @@ async function submitForm(tag) {
   const date = document.getElementById('f-date').value;
   const time = document.getElementById('f-time').value;
   const submitter = document.getElementById('f-submitter').value.trim();
-  const note = document.getElementById('f-note').value.trim();
+  const note = document.getElementById('f-note')?.value.trim() || '';
   const msg = document.getElementById('submit-msg');
   const btn = document.getElementById('btn-submit');
 
@@ -1080,7 +1106,7 @@ function tempSaveForm(tag) {
   const date      = document.getElementById('f-date').value;
   const time      = document.getElementById('f-time').value;
   const submitter = document.getElementById('f-submitter').value;
-  const note      = document.getElementById('f-note').value.trim();
+  const note      = document.getElementById('f-note')?.value.trim() || '';
   const msg       = document.getElementById('submit-msg');
 
   if (!submitter) { msg.textContent = '点検者名を入力してください'; msg.className = 'submit-msg err'; return; }
@@ -1111,7 +1137,7 @@ async function submitForm(tag) {
   const date      = document.getElementById('f-date').value;
   const time      = document.getElementById('f-time').value;
   const submitter = document.getElementById('f-submitter').value;
-  const note      = document.getElementById('f-note').value.trim();
+  const note      = document.getElementById('f-note')?.value.trim() || '';
   const msg       = document.getElementById('submit-msg');
   const btn       = document.getElementById('btn-submit');
 

@@ -231,10 +231,12 @@
   /* ===== MOBILE ===== */
   @media (max-width: 700px) {
     :root { --sidebar-w: 100%; }
-    .sidebar { position: static; width: 100%; height: auto; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+    .sidebar { position: static; width: 100%; height: auto; max-height: calc(100vh - 52px); border-right: none; border-bottom: 1px solid var(--border); overflow-y: auto; }
     .layout { flex-direction: column; }
     .main { margin-left: 0; padding: 12px; }
     .header-right .progress-bar-wrap { width: 80px; }
+    .welcome { display: none; }
+    .sidebar.has-form { max-height: 200px; }
   }
 </style>
 </head>
@@ -386,6 +388,21 @@ function updateProgress() {
   document.getElementById('progress-bar').style.width = `${(done / totalCount) * 100}%`;
 }
 
+// ===== 保存済みデータに異常があるか判定 =====
+function hasAnyAbnormal(saved) {
+  if (!saved || !saved.items) return false;
+  return Object.values(saved.items).some(v => v === '要注意' || v === '異常あり');
+}
+
+// ===== 目視結果に応じて備考・画像を表示切替 =====
+function checkAllNormal() {
+  const extra = document.getElementById('extra-section');
+  if (!extra) return;
+  const checked = document.querySelector('input[name="item-目視"]:checked');
+  const isAbnormal = checked && (checked.value === '要注意' || checked.value === '異常あり');
+  extra.style.display = isAbnormal ? '' : 'none';
+}
+
 // ===== フォーム表示 =====
 function showForm(p) {
   activeNo = p.no;
@@ -402,9 +419,13 @@ function showForm(p) {
   const savedVal = saved.items?.['目視'] || '';
   const opts = ['異常なし', '要注意', '異常あり', '該当なし'];
   const radios = opts.map(o =>
-    `<label><input type="radio" name="item-目視" value="${o}" ${savedVal === o ? 'checked' : ''}><span>${o}</span></label>`
+    `<label><input type="radio" name="item-目視" value="${o}" ${savedVal === o ? 'checked' : ''} onchange="checkAllNormal()"><span>${o}</span></label>`
   ).join('');
 
+  // 初期表示：保存済みに異常があれば展開
+  const showExtra = saved.items?.['目視'] && saved.items['目視'] !== '異常なし' && saved.items['目視'] !== '該当なし';
+
+  document.getElementById('sidebar').classList.add('has-form');
   document.getElementById('main').innerHTML = `
     <div class="form-card">
       <div class="form-header">
@@ -426,10 +447,10 @@ function showForm(p) {
             <label class="field-label">点検者</label>
             <div class="dial-picker-wrap">
               <div class="dial-display" onclick="openDial('f-submitter')">
-                <span id="f-submitter-label">選択してください</span>
+                <span id="f-submitter-label">${saved.submitter || '選択してください'}</span>
                 <span class="dial-arrow">▼</span>
               </div>
-              <input type="hidden" id="f-submitter" value="">
+              <input type="hidden" id="f-submitter" value="${saved.submitter || ''}">
             </div>
           </div>
         </div>
@@ -455,43 +476,44 @@ function showForm(p) {
           </div>
         </div>
 
-        <div class="field-row">
-          <label class="field-label">備考</label>
-          <div class="preset-palette">
-            <div class="preset-group-label">状態</div>
-            <div class="preset-btns">
-              <button type="button" onclick="insertPreset('漏液')">漏液</button>
-              <button type="button" onclick="insertPreset('接合部抜け')">接合部抜け</button>
-              <button type="button" onclick="insertPreset('亀裂')">亀裂</button>
-              <button type="button" onclick="insertPreset('破損')">破損</button>
-              <button type="button" onclick="insertPreset('変形')">変形</button>
-              <button type="button" onclick="insertPreset('パッキン・ガスケット不良')">パッキン・ガスケット不良</button>
-              <button type="button" onclick="insertPreset('閉塞')">閉塞</button>
+        <div id="extra-section" style="${showExtra ? '' : 'display:none'}">
+          <div class="field-row">
+            <label class="field-label">備考</label>
+            <div class="preset-palette">
+              <div class="preset-group-label">状態</div>
+              <div class="preset-btns">
+                <button type="button" onclick="insertPreset('漏液')">漏液</button>
+                <button type="button" onclick="insertPreset('接合部抜け')">接合部抜け</button>
+                <button type="button" onclick="insertPreset('亀裂')">亀裂</button>
+                <button type="button" onclick="insertPreset('破損')">破損</button>
+                <button type="button" onclick="insertPreset('変形')">変形</button>
+                <button type="button" onclick="insertPreset('パッキン・ガスケット不良')">パッキン・ガスケット不良</button>
+                <button type="button" onclick="insertPreset('閉塞')">閉塞</button>
+              </div>
+              <div class="preset-group-label" style="margin-top:8px">処置・対応</div>
+              <div class="preset-btns">
+                <button type="button" onclick="insertPreset('要監視')">要監視</button>
+                <button type="button" onclick="insertPreset('次回点検時に再確認')">次回点検時に再確認</button>
+                <button type="button" onclick="insertPreset('上長に報告済み')">上長に報告済み</button>
+                <button type="button" onclick="insertPreset('増し締め実施')">増し締め実施</button>
+                <button type="button" onclick="insertPreset('部品交換要')">部品交換要</button>
+                <button type="button" onclick="insertPreset('業者手配済み')">業者手配済み</button>
+              </div>
             </div>
-            <div class="preset-group-label" style="margin-top:8px">処置・対応</div>
-            <div class="preset-btns">
-              <button type="button" onclick="insertPreset('要監視')">要監視</button>
-              <button type="button" onclick="insertPreset('次回点検時に再確認')">次回点検時に再確認</button>
-              <button type="button" onclick="insertPreset('上長に報告済み')">上長に報告済み</button>
-              <button type="button" onclick="insertPreset('増し締め実施')">増し締め実施</button>
-              <button type="button" onclick="insertPreset('部品交換要')">部品交換要</button>
-              <button type="button" onclick="insertPreset('業者手配済み')">業者手配済み</button>
-            </div>
+            <textarea id="f-note" placeholder="異常内容・処置内容など（音声入力可）">${saved.note || ''}</textarea>
           </div>
-          <textarea id="f-note" placeholder="異常内容・処置内容など（音声入力可）">${saved.note || ''}</textarea>
-        </div>
-
-        <div class="field-row">
-          <label class="field-label">画像・動画</label>
-          <div class="media-area">
-            <div class="media-btns">
-              <button type="button" onclick="document.getElementById('f-image').click()">📷 画像を追加</button>
-              <button type="button" onclick="document.getElementById('f-video').click()">🎥 動画を追加（5秒以内）</button>
+          <div class="field-row">
+            <label class="field-label">画像・動画</label>
+            <div class="media-area">
+              <div class="media-btns">
+                <button type="button" onclick="document.getElementById('f-image').click()">📷 画像を追加</button>
+                <button type="button" onclick="document.getElementById('f-video').click()">🎥 動画を追加（5秒以内）</button>
+              </div>
+              <input type="file" id="f-image" accept="image/*" multiple style="display:none" onchange="addMedia(this,'image')">
+              <input type="file" id="f-video" accept="video/*" style="display:none" onchange="addMedia(this,'video')">
+              <div class="media-preview" id="media-preview"></div>
+              <div class="media-count" id="media-count"></div>
             </div>
-            <input type="file" id="f-image" accept="image/*" multiple style="display:none" onchange="addMedia(this,'image')">
-            <input type="file" id="f-video" accept="video/*" style="display:none" onchange="addMedia(this,'video')">
-            <div class="media-preview" id="media-preview"></div>
-            <div class="media-count" id="media-count"></div>
           </div>
         </div>
 
@@ -565,7 +587,7 @@ async function submitForm(no) {
   const time      = document.getElementById('f-time').value;
   const submitter = document.getElementById('f-submitter').value.trim();
   const shift     = document.getElementById('f-shift').value;
-  const note      = document.getElementById('f-note').value.trim();
+  const note      = document.getElementById('f-note')?.value.trim() || '';
   const msg       = document.getElementById('submit-msg');
   const btn       = document.getElementById('btn-submit');
 
@@ -646,7 +668,7 @@ function tempSaveForm(no) {
   const time      = document.getElementById('f-time').value;
   const submitter = document.getElementById('f-submitter').value;
   const shift     = document.getElementById('f-shift').value;
-  const note      = document.getElementById('f-note').value.trim();
+  const note      = document.getElementById('f-note')?.value.trim() || '';
   const msg       = document.getElementById('submit-msg');
 
   if (!submitter) { msg.textContent = '点検者名を入力してください'; msg.className = 'submit-msg err'; return; }
@@ -674,7 +696,7 @@ async function submitForm(no) {
   const time      = document.getElementById('f-time').value;
   const submitter = document.getElementById('f-submitter').value;
   const shift     = document.getElementById('f-shift').value;
-  const note      = document.getElementById('f-note').value.trim();
+  const note      = document.getElementById('f-note')?.value.trim() || '';
   const msg       = document.getElementById('submit-msg');
   const btn       = document.getElementById('btn-submit');
 
