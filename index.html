@@ -23,11 +23,27 @@
     --text:          #e8f0f8;
     --muted:         #7a9ab8;
   }
+  [data-theme="light"] {
+    --primary:       #1a5276;
+    --primary-mid:   #2471a3;
+    --primary-light: #2980b9;
+    --accent:        #d4850a;
+    --accent-light:  #e8a020;
+    --danger:        #c0392b;
+    --ok:            #27ae60;
+    --bg:            #f0f4f8;
+    --surface:       #ffffff;
+    --surface2:      #eef2f7;
+    --border:        #d0dae6;
+    --text:          #1c2833;
+    --muted:         #5d6d7e;
+  }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
   body {
     font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+    transition: background 0.2s, color 0.2s;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -302,7 +318,8 @@
 </head>
 <body>
 
-<header>
+<header style="position:relative;">
+  <button id="theme-btn" onclick="toggleTheme()" style="position:absolute;top:12px;right:16px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);color:#fff;border-radius:6px;padding:6px 10px;font-size:18px;cursor:pointer;line-height:1;z-index:10;">🌙</button>
   <span class="header-icon">⚙</span>
   <h1>設備点検システム</h1>
   <p>固形燃料製造施設</p>
@@ -556,6 +573,23 @@ async function bulkSend(type) {
 loadFromLocalStorage();
 loadFromGAS();
 setInterval(loadFromGAS, 5 * 60 * 1000);
+
+// ===== ダークモード =====
+function toggleTheme() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const newTheme = isLight ? 'dark' : 'light';
+  applyTheme(newTheme);
+  localStorage.setItem('theme', newTheme);
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : '');
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+}
+(function() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  applyTheme(saved);
+})();
 </script>
 
 </body>
