@@ -17,9 +17,37 @@
     --text: #1c2833;
     --muted: #5d6d7e;
     --sidebar-w: 260px;
+    --bg2: #eef2f7;
+    --bg3: #f8fafc;
+    --hover-bg: #eef6ff;
+    --active-bg: #d6eaf8;
+    --tag-bg: #eef2f7;
+    --group-bg: #eef2f7;
+    --media-bg: #f0f4f8;
+    --input-bg: #ffffff;
+  }
+  [data-theme="dark"] {
+    --primary: #1a6a9a;
+    --primary-light: #3498db;
+    --accent: #2ecc71;
+    --warn: #e67e22;
+    --danger: #e74c3c;
+    --bg: #0f1923;
+    --surface: #1a2535;
+    --border: #2c3e55;
+    --text: #e8f0f8;
+    --muted: #7a9ab8;
+    --bg2: #162030;
+    --bg3: #1e2d40;
+    --hover-bg: #1e3248;
+    --active-bg: #1a3a5c;
+    --tag-bg: #162030;
+    --group-bg: #162030;
+    --media-bg: #162030;
+    --input-bg: #1e2d40;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+  body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; transition: background 0.2s, color 0.2s; }
 
   /* ===== HEADER ===== */
   header {
@@ -60,7 +88,7 @@
     color: var(--muted);
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    background: #eef2f7;
+    background: var(--group-bg);
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
     user-select: none;
@@ -80,16 +108,16 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    border-bottom: 1px solid #f0f4f8;
+    border-bottom: 1px solid var(--border);
     transition: background 0.15s;
   }
-  .device-item:hover { background: #eef6ff; }
-  .device-item.active { background: #d6eaf8; border-left: 3px solid var(--primary-light); padding-left: 17px; }
+  .device-item:hover { background: var(--hover-bg); }
+  .device-item.active { background: var(--active-bg); border-left: 3px solid var(--primary-light); padding-left: 17px; }
   .device-name { font-size: 13px; flex: 1; }
   .tag-badge {
     font-size: 10px;
     color: var(--muted);
-    background: #eef2f7;
+    background: var(--group-bg);
     border-radius: 3px;
     padding: 1px 5px;
     flex-shrink: 0;
@@ -161,9 +189,10 @@
     font-size: 14px;
     font-family: inherit;
     width: 100%;
-    background: #fff;
+    background: var(--input-bg);
+    color: var(--text);
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, background 0.2s, color 0.2s;
   }
   .field-row input:focus, .field-row textarea:focus, .field-row select:focus {
     border-color: var(--primary-light);
@@ -176,7 +205,7 @@
     border-radius: 5px;
     padding: 8px 10px;
     font-size: 14px;
-    background: #fff;
+    background: var(--input-bg);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -199,7 +228,7 @@
   .dial-modal-overlay.open { display: flex; }
 
   .dial-modal {
-    background: #fff;
+    background: var(--input-bg);
     border-radius: 16px 16px 0 0;
     width: 100%;
     max-width: 520px;
@@ -212,6 +241,7 @@
     align-items: center;
     padding: 14px 20px;
     border-bottom: 1px solid var(--border);
+    background: var(--surface);
   }
   .dial-modal-title { font-size: 14px; font-weight: 700; color: var(--text); }
   .dial-modal-done {
@@ -243,11 +273,11 @@
   }
   .dial-scroll-area::before {
     top: 0;
-    background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0));
+    background: linear-gradient(to bottom, var(--surface), transparent);
   }
   .dial-scroll-area::after {
     bottom: 0;
-    background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0));
+    background: linear-gradient(to top, var(--surface), transparent);
   }
   /* 選択枠 */
   .dial-selector-line {
@@ -289,7 +319,7 @@
   /* ===== 点検項目グリッド ===== */
   .inspection-grid { display: grid; gap: 10px; }
   .inspection-item {
-    background: #f8fafc;
+    background: var(--bg3);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 12px 14px;
@@ -313,11 +343,11 @@
   .radio-group label:has(input[value="異常なし"]:checked) { background: #d5f5e3; border-color: var(--accent); color: #1e8449; }
   .radio-group label:has(input[value="要注意"]:checked) { background: #fef9e7; border-color: var(--warn); color: #d68910; }
   .radio-group label:has(input[value="異常あり"]:checked) { background: #fdedec; border-color: var(--danger); color: var(--danger); }
-  .radio-group label:has(input[value="該当なし"]:checked) { background: #eef2f7; border-color: #aab; color: var(--muted); }
+  .radio-group label:has(input[value="該当なし"]:checked) { background: var(--group-bg); border-color: #aab; color: var(--muted); }
 
   /* 構成機器表示（パターンC） */
   .sub-components {
-    background: #f0f4f8;
+    background: var(--media-bg);
     border-radius: 5px;
     padding: 10px 14px;
     font-size: 13px;
@@ -327,7 +357,7 @@
   .sub-components strong { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; color: var(--muted); }
   .sub-list { display: flex; flex-wrap: wrap; gap: 6px; }
   .sub-tag {
-    background: #fff;
+    background: var(--input-bg);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 3px 9px;
@@ -339,14 +369,14 @@
 
   /* ===== メディアアップロード ===== */
   .media-area {
-    background: #f0f4f8;
+    background: var(--media-bg);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 12px;
   }
   .media-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .media-btns button {
-    background: #fff;
+    background: var(--input-bg);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 8px 14px;
@@ -419,7 +449,7 @@
     gap: 6px;
   }
   .preset-btns button {
-    background: #fff;
+    background: var(--input-bg);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 5px 12px;
@@ -460,7 +490,7 @@
   .btn-submit:hover { background: var(--primary-light); }
   .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
   .btn-temp-save {
-    background: #fff;
+    background: var(--input-bg);
     color: var(--primary);
     border: 2px solid var(--primary);
     border-radius: 6px;
@@ -471,7 +501,7 @@
     font-family: inherit;
     transition: all 0.15s;
   }
-  .btn-temp-save:hover { background: #eef6ff; }
+  .btn-temp-save:hover { background: var(--hover-bg); }
   .btn-temp-save:disabled { opacity: 0.4; cursor: not-allowed; }
   .submit-msg { font-size: 13px; }
   .submit-msg.ok { color: var(--accent); }
@@ -500,6 +530,12 @@
     }
   }
 </style>
+<script>
+(function(){
+  var t = localStorage.getItem('theme') || 'light';
+  if(t === 'dark') document.documentElement.setAttribute('data-theme','dark');
+})();
+</script>
 </head>
 <body>
 
@@ -513,6 +549,7 @@
     <span id="progress-text">0 / 44</span>
     <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
     <button onclick="downloadExcel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:5px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;">📥 Excel保存</button>
+    <button id="theme-btn" onclick="toggleTheme()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:5px;padding:5px 10px;font-size:16px;cursor:pointer;line-height:1;">🌙</button>
   </div>
 </header>
 
@@ -1337,6 +1374,26 @@ function dialOverlayClick(e) {
 restoreFromLocalStorage();
 buildSidebar();
 updateProgress();
+
+// ===== ダークモード =====
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  applyTheme(newTheme);
+  localStorage.setItem('theme', newTheme);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : '');
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+// ページ読込時にテーマ復元
+(function() {
+  const saved = localStorage.getItem('theme') || 'light';
+  applyTheme(saved);
+})();
 </script>
 </body>
 </html>
