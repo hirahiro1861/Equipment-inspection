@@ -396,14 +396,15 @@ function getCurrentShift() {
 }
 
 // ===== バッジ更新 =====
-function setBadge(id, done) {
+function setBadge(id, done, count, total) {
   const el = document.getElementById(id);
   if (!el) return;
+  const countStr = (count !== undefined && total !== undefined) ? ` ${count}/${total}` : '';
   if (done) {
-    el.textContent = '✅ 完了';
+    el.textContent = '✅ 完了' + countStr;
     el.className = 'status-badge badge-done';
   } else {
-    el.textContent = '⚠ 未点検';
+    el.textContent = '⚠ 未点検' + countStr;
     el.className = 'status-badge badge-undone';
   }
 }
@@ -445,13 +446,13 @@ function loadFromLocalStorage() {
   }
   kikiSent = Object.keys(localStorage).filter(k => k.startsWith(`kiki_sent_${today}_${shift}_`)).length;
   kikiTemp = Object.keys(localStorage).filter(k => k.startsWith(`kiki_temp_${today}_${shift}_`)).length;
-  setBadge('badge-kiki', kikiSent >= KIKI_TOTAL);
+  setBadge('badge-kiki', kikiSent >= KIKI_TOTAL, kikiSent, KIKI_TOTAL);
   updateBulkBtn('kiki', kikiTemp, KIKI_TOTAL);
 
   // 配管点検（全件送信済みで完了）
   const pipingSent = Object.keys(localStorage).filter(k => k.startsWith(`piping_sent_${today}_${shift}_`)).length;
   const pipingTemp = Object.keys(localStorage).filter(k => k.startsWith(`piping_temp_${today}_${shift}_`)).length;
-  setBadge('badge-piping', pipingSent >= PIPING_TOTAL);
+  setBadge('badge-piping', pipingSent >= PIPING_TOTAL, pipingSent, PIPING_TOTAL);
   updateBulkBtn('piping', pipingTemp, PIPING_TOTAL);
 
   // ボイラー・ベーパライザ（当日1回送信で完了）
@@ -473,8 +474,8 @@ async function loadFromGAS() {
     const kikiSent = Object.keys(localStorage).filter(k => k.startsWith(`kiki_sent_${today}_${shift}_`)).length;
     const pipingSent = Object.keys(localStorage).filter(k => k.startsWith(`piping_sent_${today}_${shift}_`)).length;
 
-    if (d.inspection_app?.done  || kikiSent >= KIKI_TOTAL)   setBadge('badge-kiki',      true);
-    if (d.piping_inspection?.done || pipingSent >= PIPING_TOTAL) setBadge('badge-piping', true);
+    if (d.inspection_app?.done  || kikiSent >= KIKI_TOTAL)   setBadge('badge-kiki',   true, Math.max(kikiSent, d.inspection_app?.count ?? 0), KIKI_TOTAL);
+    if (d.piping_inspection?.done || pipingSent >= PIPING_TOTAL) setBadge('badge-piping', true, Math.max(pipingSent, d.piping_inspection?.count ?? 0), PIPING_TOTAL);
     if (d.boiler_daily?.done    || localStorage.getItem(`boiler_daily_${today}`))    setBadge('badge-boiler',    true);
     if (d.vaporizer_daily?.done || localStorage.getItem(`vaporizer_daily_${today}`)) setBadge('badge-vaporizer', true);
 
