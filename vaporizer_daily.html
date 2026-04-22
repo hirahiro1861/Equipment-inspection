@@ -21,7 +21,7 @@
     --purple-light: #8e44ad;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+  body { font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; background: var(--bg); color: var(--text); font-size: 14px; transition: background 0.2s, color 0.2s; }
 
   /* ===== HEADER ===== */
   header {
@@ -247,7 +247,33 @@
     .field-grid-2 { grid-template-columns: 1fr; }
     .judge-group label { width: 32px; height: 32px; font-size: 13px; }
   }
+  [data-theme="dark"] {
+    --primary: #1a6a9a;
+    --primary-light: #3498db;
+    --accent: #2ecc71;
+    --warn: #e67e22;
+    --danger: #e74c3c;
+    --bg: #0f1923;
+    --surface: #1a2535;
+    --border: #2c3e55;
+    --text: #e8f0f8;
+    --muted: #7a9ab8;
+    --bg2: #162030;
+    --bg3: #1e2d40;
+    --hover-bg: #1e3248;
+    --active-bg: #1a3a5c;
+    --tag-bg: #162030;
+    --group-bg: #162030;
+    --media-bg: #162030;
+    --input-bg: #1e2d40;
+  }
 </style>
+<script>
+(function(){
+  var t = localStorage.getItem('theme') || 'light';
+  if(t === 'dark') document.documentElement.setAttribute('data-theme','dark');
+})();
+</script>
 </head>
 <body>
 
@@ -270,8 +296,10 @@
     <button class="btn-back" onclick="location.href='index.html'">← 戻る</button>
     <h1>💧 ベーパライザ日常点検表</h1>
   </div>
-  <div class="header-right" id="header-date"></div>
+  <div class="header-right" id="header-date" style="display:flex;align-items:center;gap:8px;">
+  </div>
 </header>
+<button id="theme-btn" onclick="toggleTheme()" style="position:fixed;top:10px;right:12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:6px 10px;font-size:18px;cursor:pointer;line-height:1;z-index:9999;">🌙</button>
 
 <main>
 
@@ -629,6 +657,23 @@ async function submitForm() {
   }
   btn.disabled = false;
 }
+
+// ===== ダークモード =====
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  applyTheme(newTheme);
+  localStorage.setItem('theme', newTheme);
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : '');
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+(function() {
+  const saved = localStorage.getItem('theme') || 'light';
+  applyTheme(saved);
+})();
 </script>
 </body>
 </html>
