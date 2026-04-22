@@ -101,6 +101,18 @@
   .status-dot.ok { background: var(--accent); }
   .status-dot.ng { background: var(--danger); }
 
+  /* ===== 点検済バッジ ===== */
+  .done-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .done-badge.ok  { background: #d5f5e3; color: #1e8449; border: 1px solid #27ae60; }
+  .done-badge.ng  { background: #fdedec; color: #c0392b; border: 1px solid #c0392b; }
+
   /* ===== MAIN ===== */
   .main {
     margin-left: var(--sidebar-w);
@@ -478,6 +490,32 @@ let activeTag = null;
 const allDevices = GROUPS.flatMap(g => g.devices);
 const totalCount = allDevices.length;
 
+// ===== シフト判定 =====
+function getCurrentShift() {
+  const h = new Date().getHours();
+  if (h < 7)  return '夜勤（0:00〜6:59）';
+  if (h < 15) return '日勤（7:00〜14:59）';
+  return '準夜（15:00〜23:59）';
+}
+
+// ===== localStorage キー =====
+function getStorageKey(tag) {
+  const today = new Date().toISOString().slice(0, 10);
+  const shift = getCurrentShift();
+  return `kiki_${today}_${shift}_${tag}`;
+}
+
+// ===== localStorage から復元 =====
+function restoreFromLocalStorage() {
+  allDevices.forEach(dev => {
+    const key = getStorageKey(dev.tag);
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      results[dev.tag] = JSON.parse(saved);
+    }
+  });
+}
+
 // ===== サイドバー生成 =====
 function buildSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -502,10 +540,15 @@ function buildSidebar() {
       item.className = 'device-item';
       item.dataset.tag = dev.tag;
       const r = results[dev.tag];
-      const dot = r ? (hasNG(r) ? 'ng' : 'ok') : '';
+      const isNG = r && hasNG(r);
+      const isDone = !!r;
+      const badgeHTML = isDone
+        ? `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`
+        : '';
       item.innerHTML = `
-        <span class="status-dot ${dot}" id="dot-${dev.tag}"></span>
+        <span class="status-dot ${isDone ? (isNG ? 'ng' : 'ok') : ''}" id="dot-${dev.tag}"></span>
         <span class="device-name">${dev.name}</span>
+        <span id="badge-${dev.tag}">${badgeHTML}</span>
         <span class="tag-badge">${dev.tag}</span>
       `;
       item.addEventListener('click', () => showForm(dev));
@@ -788,6 +831,10 @@ async function submitForm(tag) {
       // メディアをリセット
       mediaFiles.length = 0;
       renderMediaPreview();
+      // localStorageに保存してバッジ更新
+      localStorage.setItem(getStorageKey(tag), JSON.stringify(results[tag]));
+      updateSidebarBadge(tag);
+      saveToLocalStorage();
     } else {
       throw new Error(json.message || 'エラー');
     }
@@ -803,15 +850,23 @@ async function submitForm(tag) {
   btn.disabled = false;
 }
 
-// ===== シフト判定 =====
-function getCurrentShift() {
-  const h = new Date().getHours();
-  if (h < 7)  return '夜勤（0:00〜6:59）';
-  if (h < 15) return '日勤（7:00〜14:59）';
-  return '準夜（15:00〜23:59）';
+// ===== サイドバーバッジ更新 =====
+function updateSidebarBadge(tag) {
+  const r = results[tag];
+  const isNG = r && hasNG(r);
+  const badgeEl = document.getElementById(`badge-${tag}`);
+  const dotEl   = document.getElementById(`dot-${tag}`);
+  if (badgeEl) {
+    badgeEl.innerHTML = r
+      ? `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`
+      : '';
+  }
+  if (dotEl) {
+    dotEl.className = `status-dot ${r ? (isNG ? 'ng' : 'ok') : ''}`;
+  }
 }
 
-// ===== localStorage 書き込み =====
+// ===== localStorage 書き込み（index.html用） =====
 function saveToLocalStorage() {
   const today = new Date().toISOString().slice(0, 10);
   const shift = getCurrentShift();
@@ -838,6 +893,7 @@ function insertPreset(text) {
 }
 
 // ===== 初期化 =====
+restoreFromLocalStorage();
 buildSidebar();
 updateProgress();
 </script>

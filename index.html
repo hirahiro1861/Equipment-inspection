@@ -422,10 +422,20 @@ async function loadFromGAS() {
     if (json.status !== 'ok') return;
 
     const d = json.data;
-    setBadge('badge-kiki',      d.inspection_app?.done    || false);
-    setBadge('badge-piping',    d.piping_inspection?.done || false);
-    setBadge('badge-boiler',    d.boiler_daily?.done      || false);
-    setBadge('badge-vaporizer', d.vaporizer_daily?.done   || false);
+    // GASが「完了」の場合のみ上書き（localStorageが完了の場合は上書きしない）
+    const today = new Date().toISOString().slice(0, 10);
+    const shift = getCurrentShift();
+
+    if (d.inspection_app?.done)    setBadge('badge-kiki',      true);
+    if (d.piping_inspection?.done) setBadge('badge-piping',    true);
+    if (d.boiler_daily?.done)      setBadge('badge-boiler',    true);
+    if (d.vaporizer_daily?.done)   setBadge('badge-vaporizer', true);
+
+    // GASが「未完了」でもlocalStorageが完了なら上書きしない
+    if (!d.inspection_app?.done    && !localStorage.getItem(`inspection_app_${today}_${shift}`))    setBadge('badge-kiki',      false);
+    if (!d.piping_inspection?.done && !localStorage.getItem(`piping_inspection_${today}_${shift}`)) setBadge('badge-piping',    false);
+    if (!d.boiler_daily?.done      && !localStorage.getItem(`boiler_daily_${today}`))               setBadge('badge-boiler',    false);
+    if (!d.vaporizer_daily?.done   && !localStorage.getItem(`vaporizer_daily_${today}`))            setBadge('badge-vaporizer', false);
 
     // シフト表示をGASの返答で更新
     ['kiki','piping'].forEach(key => {

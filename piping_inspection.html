@@ -91,6 +91,15 @@
   .status-dot.ok { background: var(--accent); }
   .status-dot.ng { background: var(--danger); }
 
+  /* ===== 点検済バッジ ===== */
+  .done-badge {
+    font-size: 10px; font-weight: 700;
+    padding: 2px 6px; border-radius: 8px;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .done-badge.ok { background: #d5f5e3; color: #1e8449; border: 1px solid #27ae60; }
+  .done-badge.ng { background: #fdedec; color: #c0392b; border: 1px solid #c0392b; }
+
   /* ===== MAIN ===== */
   .main { margin-left: var(--sidebar-w); flex: 1; padding: 24px 20px 40px; }
   .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; color: var(--muted); text-align: center; gap: 12px; }
@@ -266,6 +275,24 @@ function getCurrentShift() {
   return '準夜（15:00〜23:59）';
 }
 
+// ===== localStorage キー（配管個別） =====
+function getPipingStorageKey(no) {
+  const today = new Date().toISOString().slice(0, 10);
+  const shift = getCurrentShift();
+  return `piping_${today}_${shift}_${no}`;
+}
+
+// ===== localStorage から復元 =====
+function restoreFromLocalStorage() {
+  PIPINGS.forEach(p => {
+    const key = getPipingStorageKey(p.no);
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      results[p.no] = JSON.parse(saved);
+    }
+  });
+}
+
 // ===== サイドバー生成 =====
 function buildSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -275,10 +302,15 @@ function buildSidebar() {
     item.className = 'device-item';
     item.dataset.no = p.no;
     const r = results[p.no];
-    const dot = r ? (hasNG(r) ? 'ng' : 'ok') : '';
+    const isNG = r && hasNG(r);
+    const isDone = !!r;
+    const badgeHTML = isDone
+      ? `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`
+      : '';
     item.innerHTML = `
-      <span class="status-dot ${dot}" id="dot-${p.no}"></span>
+      <span class="status-dot ${isDone ? (isNG ? 'ng' : 'ok') : ''}" id="dot-${p.no}"></span>
       <span class="device-name">No.${p.no} ${p.name}</span>
+      <span id="badge-${p.no}">${badgeHTML}</span>
       <span class="no-badge">${p.size}</span>
     `;
     item.addEventListener('click', () => showForm(p));
@@ -518,6 +550,10 @@ async function submitForm(no) {
       msg.className = 'submit-msg ok';
       mediaFiles.length = 0;
       renderMediaPreview();
+      // localStorageに個別保存してバッジ更新
+      localStorage.setItem(getPipingStorageKey(no), JSON.stringify(results[no]));
+      updateSidebarBadge(no);
+      saveToLocalStorage();
     } else {
       throw new Error(json.message || 'エラー');
     }
@@ -528,7 +564,23 @@ async function submitForm(no) {
   btn.disabled = false;
 }
 
-// ===== localStorage =====
+// ===== サイドバーバッジ更新 =====
+function updateSidebarBadge(no) {
+  const r = results[no];
+  const isNG = r && hasNG(r);
+  const badgeEl = document.getElementById(`badge-${no}`);
+  const dotEl   = document.getElementById(`dot-${no}`);
+  if (badgeEl) {
+    badgeEl.innerHTML = r
+      ? `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`
+      : '';
+  }
+  if (dotEl) {
+    dotEl.className = `status-dot ${r ? (isNG ? 'ng' : 'ok') : ''}`;
+  }
+}
+
+// ===== localStorage（index.html用） =====
 function saveToLocalStorage() {
   const today = new Date().toISOString().slice(0, 10);
   const shift = getCurrentShift();
@@ -546,6 +598,7 @@ function insertPreset(text) {
 }
 
 // ===== 初期化 =====
+restoreFromLocalStorage();
 buildSidebar();
 updateProgress();
 </script>
