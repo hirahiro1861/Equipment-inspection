@@ -579,7 +579,8 @@
   <main class="main" id="main">
     <div class="welcome">
       <div class="icon">🔧</div>
-      <p>左のメニューから点検する機器を選んでください</p>
+      <p>点検する機器を選んでください</p>
+      <button onclick="openSidebar()" style="margin-top:16px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">🔍 機器を選ぶ</button>
     </div>
   </main>
 
@@ -790,9 +791,13 @@ function checkAllNormal() {
 function showForm(dev) {
   activeTag = dev.tag;
   // サイドバーをフォーム表示時に縮小（スマホ）
-  document.getElementById('sidebar').classList.add('has-form');
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.add('has-form');
+  sidebar.style.maxHeight = ''; // CSSのmax-height:220pxに戻す
   document.querySelector('.layout').classList.add('has-form');
-  document.getElementById('main').classList.add('active');
+  const main = document.getElementById('main');
+  main.classList.add('active');
+  main.style.display = ''; // mainを再表示
 
   // サイドバーのactive更新
   document.querySelectorAll('.device-item').forEach(el => el.classList.remove('active'));
@@ -1378,6 +1383,14 @@ function dialOverlayClick(e) {
 restoreFromLocalStorage();
 buildSidebar();
 updateProgress();
+
+// ===== サイドバーを開く（スマホ用） =====
+function openSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.add('has-form');  // CSSでdisplay:blockになる
+  sidebar.style.maxHeight = 'calc(100vh - 52px)'; // 全画面で開く
+  document.getElementById('main').style.display = 'none';
+}
 
 // ===== ダークモード =====
 function toggleTheme() {
