@@ -261,6 +261,28 @@
     margin-top: 3px;
   }
 
+  /* ===== 一括送信ボタン ===== */
+  .bulk-send-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .bulk-send-btn:not(:disabled) {
+    background: rgba(232,160,32,0.2);
+    border-color: var(--accent);
+    color: var(--accent-light);
+  }
+  .bulk-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .bulk-send-btn:not(:disabled):active { background: var(--accent); color: #fff; }
+
   /* ===== FOOTER ===== */
   footer {
     position: relative;
@@ -302,6 +324,9 @@
         <div class="card-title">機器点検表</div>
         <div class="card-desc">モータ・ポンプ・槽など 44台</div>
         <div class="shift-text" id="shift-label-kiki"></div>
+        <div style="margin-top:6px;">
+          <button class="bulk-send-btn" id="bulk-btn-kiki" onclick="event.preventDefault();bulkSend('kiki')" disabled>一括送信 -</button>
+        </div>
       </div>
       <span class="status-badge badge-loading" id="badge-kiki">確認中</span>
       <span class="card-arrow">›</span>
@@ -313,6 +338,9 @@
         <div class="card-title">配管点検表</div>
         <div class="card-desc">各配管 22系統</div>
         <div class="shift-text" id="shift-label-piping"></div>
+        <div style="margin-top:6px;">
+          <button class="bulk-send-btn" id="bulk-btn-piping" onclick="event.preventDefault();bulkSend('piping')" disabled>一括送信 -</button>
+        </div>
       </div>
       <span class="status-badge badge-loading" id="badge-piping">確認中</span>
       <span class="card-arrow">›</span>
@@ -347,13 +375,15 @@
 
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpIRGowSYlple1BEA75lHbxlv_K_LTBw0gFjW0R7swNhKMcW79Boi0BuUl59SJSGRf/exec';
+const KIKI_TOTAL   = 44;
+const PIPING_TOTAL = 22;
 
 // ===== 日時表示 =====
 function updateDate() {
   const now = new Date();
   const w = ['日','月','火','水','木','金','土'];
-  const str = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${w[now.getDay()]}）`;
-  document.getElementById('date-now').textContent = str;
+  document.getElementById('date-now').textContent =
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${w[now.getDay()]}）`;
 }
 updateDate();
 
@@ -370,7 +400,7 @@ function setBadge(id, done) {
   const el = document.getElementById(id);
   if (!el) return;
   if (done) {
-    el.textContent = '✔ 完了';
+    el.textContent = '✅ 完了';
     el.className = 'status-badge badge-done';
   } else {
     el.textContent = '⚠ 未点検';
@@ -378,7 +408,20 @@ function setBadge(id, done) {
   }
 }
 
-// ===== localStorageから即時表示 =====
+// ===== 一括送信ボタン更新 =====
+function updateBulkBtn(type, tempCount, total) {
+  const btn = document.getElementById(`bulk-btn-${type}`);
+  if (!btn) return;
+  if (tempCount > 0) {
+    btn.textContent = `一括送信 ${tempCount}/${total}`;
+    btn.disabled = false;
+  } else {
+    btn.textContent = `一括送信 -`;
+    btn.disabled = true;
+  }
+}
+
+// ===== localStorageから状況を読み取り =====
 function loadFromLocalStorage() {
   const today = new Date().toISOString().slice(0, 10);
   const shift = getCurrentShift();
@@ -393,65 +436,124 @@ function loadFromLocalStorage() {
     if (el) el.textContent = '本日';
   });
 
-  // 機器点検（シフト別）
-  const kikiKey = `inspection_app_${today}_${shift}`;
-  const kikiData = localStorage.getItem(kikiKey);
-  if (kikiData) setBadge('badge-kiki', true);
+  // 機器点検（全件送信済みで完了）
+  let kikiSent = 0, kikiTemp = 0;
+  for (let i = 0; i < 9999; i++) {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(`kiki_sent_${today}_${shift}_`));
+    kikiSent = keys.length;
+    break;
+  }
+  kikiSent = Object.keys(localStorage).filter(k => k.startsWith(`kiki_sent_${today}_${shift}_`)).length;
+  kikiTemp = Object.keys(localStorage).filter(k => k.startsWith(`kiki_temp_${today}_${shift}_`)).length;
+  setBadge('badge-kiki', kikiSent >= KIKI_TOTAL);
+  updateBulkBtn('kiki', kikiTemp, KIKI_TOTAL);
 
-  // 配管点検（シフト別）
-  const pipingKey = `piping_inspection_${today}_${shift}`;
-  const pipingData = localStorage.getItem(pipingKey);
-  if (pipingData) setBadge('badge-piping', true);
+  // 配管点検（全件送信済みで完了）
+  const pipingSent = Object.keys(localStorage).filter(k => k.startsWith(`piping_sent_${today}_${shift}_`)).length;
+  const pipingTemp = Object.keys(localStorage).filter(k => k.startsWith(`piping_temp_${today}_${shift}_`)).length;
+  setBadge('badge-piping', pipingSent >= PIPING_TOTAL);
+  updateBulkBtn('piping', pipingTemp, PIPING_TOTAL);
 
-  // ボイラー日常（1日1回）
-  const boilerKey = `boiler_daily_${today}`;
-  const boilerData = localStorage.getItem(boilerKey);
-  if (boilerData) setBadge('badge-boiler', true);
-
-  // ベーパライザ日常（1日1回）
-  const vaporizerKey = `vaporizer_daily_${today}`;
-  const vaporizerData = localStorage.getItem(vaporizerKey);
-  if (vaporizerData) setBadge('badge-vaporizer', true);
+  // ボイラー・ベーパライザ（当日1回送信で完了）
+  if (localStorage.getItem(`boiler_daily_${today}`))    setBadge('badge-boiler',    true);
+  if (localStorage.getItem(`vaporizer_daily_${today}`)) setBadge('badge-vaporizer', true);
 }
 
-// ===== GASから最新状況を取得して更新 =====
+// ===== GASから最新状況を取得 =====
 async function loadFromGAS() {
   try {
-    const res = await fetch(GAS_URL);
+    const res  = await fetch(GAS_URL);
     const json = await res.json();
     if (json.status !== 'ok') return;
-
     const d = json.data;
-    // GASが「完了」の場合のみ上書き（localStorageが完了の場合は上書きしない）
     const today = new Date().toISOString().slice(0, 10);
     const shift = getCurrentShift();
 
-    if (d.inspection_app?.done)    setBadge('badge-kiki',      true);
-    if (d.piping_inspection?.done) setBadge('badge-piping',    true);
-    if (d.boiler_daily?.done)      setBadge('badge-boiler',    true);
-    if (d.vaporizer_daily?.done)   setBadge('badge-vaporizer', true);
+    // GASが完了→上書き。未完了でもlocalStorageが完了なら上書きしない
+    const kikiSent = Object.keys(localStorage).filter(k => k.startsWith(`kiki_sent_${today}_${shift}_`)).length;
+    const pipingSent = Object.keys(localStorage).filter(k => k.startsWith(`piping_sent_${today}_${shift}_`)).length;
 
-    // GASが「未完了」でもlocalStorageが完了なら上書きしない
-    if (!d.inspection_app?.done    && !localStorage.getItem(`inspection_app_${today}_${shift}`))    setBadge('badge-kiki',      false);
-    if (!d.piping_inspection?.done && !localStorage.getItem(`piping_inspection_${today}_${shift}`)) setBadge('badge-piping',    false);
-    if (!d.boiler_daily?.done      && !localStorage.getItem(`boiler_daily_${today}`))               setBadge('badge-boiler',    false);
-    if (!d.vaporizer_daily?.done   && !localStorage.getItem(`vaporizer_daily_${today}`))            setBadge('badge-vaporizer', false);
+    if (d.inspection_app?.done  || kikiSent >= KIKI_TOTAL)   setBadge('badge-kiki',      true);
+    if (d.piping_inspection?.done || pipingSent >= PIPING_TOTAL) setBadge('badge-piping', true);
+    if (d.boiler_daily?.done    || localStorage.getItem(`boiler_daily_${today}`))    setBadge('badge-boiler',    true);
+    if (d.vaporizer_daily?.done || localStorage.getItem(`vaporizer_daily_${today}`)) setBadge('badge-vaporizer', true);
 
-    // シフト表示をGASの返答で更新
     ['kiki','piping'].forEach(key => {
       const el = document.getElementById('shift-label-' + key);
       if (el && json.shift) el.textContent = json.shift;
     });
-  } catch(e) {
-    // ネットワークエラー時はlocalStorageの表示のまま
-  }
+  } catch(e) { /* ネットワークエラー時はlocalStorageのまま */ }
 }
 
-// ===== 初期化：localStorage→即表示、GAS→後から更新 =====
+// ===== 一括送信 =====
+async function bulkSend(type) {
+  const btn = document.getElementById(`bulk-btn-${type}`);
+  const today = new Date().toISOString().slice(0, 10);
+  const shift = getCurrentShift();
+  const prefix = type === 'kiki'
+    ? `kiki_temp_${today}_${shift}_`
+    : `piping_temp_${today}_${shift}_`;
+
+  const tempKeys = Object.keys(localStorage).filter(k => k.startsWith(prefix));
+  if (tempKeys.length === 0) return;
+
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  let successCount = 0;
+  let errorCount   = 0;
+
+  for (const key of tempKeys) {
+    const data = JSON.parse(localStorage.getItem(key));
+    const sentKey = key.replace('_temp_', '_sent_');
+
+    // payloadを組み立て
+    let payload;
+    if (type === 'kiki') {
+      const tag = key.split('_').pop();
+      payload = {
+        sheetName: '点検記録',
+        date: data.date, time: data.time, submitter: data.submitter,
+        tag, deviceName: data.deviceName || '', pattern: data.pattern || '',
+        items: data.items, note: data.note || '', media: []
+      };
+    } else {
+      const no = parseInt(key.split('_').pop());
+      payload = {
+        sheetName: '配管点検記録',
+        date: data.date, time: data.time, shift: data.shift || shift,
+        submitter: data.submitter,
+        pipeNo: no, pipeName: data.pipeName || '',
+        items: data.items, note: data.note || '', media: []
+      };
+    }
+
+    try {
+      const res  = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const json = await res.json();
+      if (json.status === 'ok') {
+        // tempを削除してsentに昇格
+        localStorage.removeItem(key);
+        localStorage.setItem(sentKey, JSON.stringify(data));
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    } catch(e) {
+      errorCount++;
+    }
+  }
+
+  // 結果表示
+  alert(`一括送信完了：${successCount}件成功${errorCount > 0 ? '、' + errorCount + '件失敗' : ''}`);
+
+  // バッジ・ボタン再読み込み
+  loadFromLocalStorage();
+}
+
+// ===== 初期化 =====
 loadFromLocalStorage();
 loadFromGAS();
-
-// 5分ごとに自動更新
 setInterval(loadFromGAS, 5 * 60 * 1000);
 </script>
 

@@ -100,6 +100,7 @@
   }
   .status-dot.ok { background: var(--accent); }
   .status-dot.ng { background: var(--danger); }
+  .status-dot.temp { background: #e67e22; }
 
   /* ===== 点検済バッジ ===== */
   .done-badge {
@@ -110,8 +111,9 @@
     flex-shrink: 0;
     white-space: nowrap;
   }
-  .done-badge.ok  { background: #d5f5e3; color: #1e8449; border: 1px solid #27ae60; }
-  .done-badge.ng  { background: #fdedec; color: #c0392b; border: 1px solid #c0392b; }
+  .done-badge.ok   { background: #d5f5e3; color: #1e8449; border: 1px solid #27ae60; }
+  .done-badge.ng   { background: #fdedec; color: #c0392b; border: 1px solid #c0392b; }
+  .done-badge.temp { background: #fef9e7; color: #d68910; border: 1px solid #e67e22; }
 
   /* ===== MAIN ===== */
   .main {
@@ -448,7 +450,7 @@
     color: #fff;
     border: none;
     border-radius: 6px;
-    padding: 10px 28px;
+    padding: 10px 20px;
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
@@ -457,6 +459,20 @@
   }
   .btn-submit:hover { background: var(--primary-light); }
   .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+  .btn-temp-save {
+    background: #fff;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn-temp-save:hover { background: #eef6ff; }
+  .btn-temp-save:disabled { opacity: 0.4; cursor: not-allowed; }
   .submit-msg { font-size: 13px; }
   .submit-msg.ok { color: var(--accent); }
   .submit-msg.err { color: var(--danger); }
@@ -670,14 +686,20 @@ function buildSidebar() {
       const item = document.createElement('div');
       item.className = 'device-item';
       item.dataset.tag = dev.tag;
-      const r = results[dev.tag];
-      const isNG = r && hasNG(r);
-      const isDone = !!r;
-      const badgeHTML = isDone
-        ? `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`
-        : '';
+      const sent = sentResults[dev.tag];
+      const temp = tempResults[dev.tag];
+      let dotClass  = '';
+      let badgeHTML = '';
+      if (sent) {
+        const isNG = hasNG(sent);
+        dotClass  = isNG ? 'ng' : 'ok';
+        badgeHTML = `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`;
+      } else if (temp) {
+        dotClass  = 'temp';
+        badgeHTML = `<span class="done-badge temp">📝 入力中</span>`;
+      }
       item.innerHTML = `
-        <span class="status-dot ${isDone ? (isNG ? 'ng' : 'ok') : ''}" id="dot-${dev.tag}"></span>
+        <span class="status-dot ${dotClass}" id="dot-${dev.tag}"></span>
         <span class="device-name">${dev.name}</span>
         <span id="badge-${dev.tag}">${badgeHTML}</span>
         <span class="tag-badge">${dev.tag}</span>
@@ -821,7 +843,8 @@ function showForm(dev) {
           </div>
         </div>
       <div class="form-footer">
-        <button class="btn-submit" id="btn-submit" onclick="submitForm('${dev.tag}')">保存・送信</button>
+        <button class="btn-temp-save" id="btn-temp" onclick="tempSaveForm('${dev.tag}')">一時保存</button>
+        <button class="btn-submit" id="btn-submit" onclick="submitForm('${dev.tag}')">送信</button>
         <span class="submit-msg" id="submit-msg"></span>
       </div>
     </div>
@@ -987,32 +1010,174 @@ async function submitForm(tag) {
   btn.disabled = false;
 }
 
+// ===== State管理 =====
+// sent: GAS送信済み, temp: 一時保存済み（未送信）
+const sentResults = {}; // { tag: data } 送信済み
+const tempResults = {}; // { tag: data } 一時保存済み
+
 // ===== サイドバーバッジ更新 =====
 function updateSidebarBadge(tag) {
-  const r = results[tag];
-  const isNG = r && hasNG(r);
+  const sent = sentResults[tag];
+  const temp = tempResults[tag];
   const badgeEl = document.getElementById(`badge-${tag}`);
   const dotEl   = document.getElementById(`dot-${tag}`);
-  if (badgeEl) {
-    badgeEl.innerHTML = r
-      ? `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`
-      : '';
+  let badgeHTML = '';
+  let dotClass  = '';
+
+  if (sent) {
+    const isNG = hasNG(sent);
+    badgeHTML = `<span class="done-badge ${isNG ? 'ng' : 'ok'}">${isNG ? '⚠ 異常' : '✅ 点検済'}</span>`;
+    dotClass  = isNG ? 'ng' : 'ok';
+  } else if (temp) {
+    badgeHTML = `<span class="done-badge temp">📝 入力中</span>`;
+    dotClass  = 'temp';
   }
-  if (dotEl) {
-    dotEl.className = `status-dot ${r ? (isNG ? 'ng' : 'ok') : ''}`;
-  }
+  if (badgeEl) badgeEl.innerHTML = badgeHTML;
+  if (dotEl)   dotEl.className = `status-dot ${dotClass}`;
 }
 
-// ===== localStorage 書き込み（index.html用） =====
-function saveToLocalStorage() {
+// ===== 進捗更新（送信済み件数） =====
+function updateProgress() {
+  const done = Object.keys(sentResults).length;
+  document.getElementById('progress-text').textContent = `${done} / ${totalCount}`;
+  document.getElementById('progress-bar').style.width = `${(done / totalCount) * 100}%`;
+}
+
+// ===== localStorageキー =====
+function getStorageKey(tag, type) {
   const today = new Date().toISOString().slice(0, 10);
   const shift = getCurrentShift();
-  const done  = Object.keys(results).length;
-  const key   = `inspection_app_${today}_${shift}`;
-  localStorage.setItem(key, JSON.stringify({ done, total: totalCount, ts: Date.now() }));
+  return `kiki_${type}_${today}_${shift}_${tag}`;
 }
 
-// ===== Excelダウンロード =====
+// ===== localStorage から復元 =====
+function restoreFromLocalStorage() {
+  allDevices.forEach(dev => {
+    const sentKey = getStorageKey(dev.tag, 'sent');
+    const tempKey = getStorageKey(dev.tag, 'temp');
+    const sentData = localStorage.getItem(sentKey);
+    const tempData = localStorage.getItem(tempKey);
+    if (sentData) sentResults[dev.tag] = JSON.parse(sentData);
+    if (tempData) tempResults[dev.tag] = JSON.parse(tempData);
+    // sentとtempを results にマージ（フォーム表示用）
+    if (sentData) results[dev.tag] = JSON.parse(sentData);
+    else if (tempData) results[dev.tag] = JSON.parse(tempData);
+  });
+}
+
+// ===== index.html用フラグ保存 =====
+function saveIndexFlag() {
+  const today = new Date().toISOString().slice(0, 10);
+  const shift = getCurrentShift();
+  const key   = `inspection_app_${today}_${shift}`;
+  const allSent = Object.keys(sentResults).length === totalCount;
+  localStorage.setItem(key, JSON.stringify({ done: Object.keys(sentResults).length, total: totalCount, allSent, ts: Date.now() }));
+}
+
+// ===== 一時保存処理 =====
+function tempSaveForm(tag) {
+  const dev = allDevices.find(d => d.tag === tag);
+  const date      = document.getElementById('f-date').value;
+  const time      = document.getElementById('f-time').value;
+  const submitter = document.getElementById('f-submitter').value;
+  const note      = document.getElementById('f-note').value.trim();
+  const msg       = document.getElementById('submit-msg');
+
+  if (!submitter) { msg.textContent = '点検者名を入力してください'; msg.className = 'submit-msg err'; return; }
+
+  const items = {};
+  PATTERNS[dev.pattern].forEach(item => {
+    const checked = document.querySelector(`input[name="item-${item}"]:checked`);
+    items[item] = checked ? checked.value : '';
+  });
+
+  const data = { date, time, submitter, items, note, _temp: true };
+  tempResults[tag] = data;
+  results[tag]     = data;
+
+  // localStorage保存
+  localStorage.setItem(getStorageKey(tag, 'temp'), JSON.stringify(data));
+  updateSidebarBadge(tag);
+  updateProgress();
+  saveIndexFlag();
+
+  msg.textContent = '📝 一時保存しました';
+  msg.className = 'submit-msg ok';
+}
+
+// ===== 送信処理 =====
+async function submitForm(tag) {
+  const dev = allDevices.find(d => d.tag === tag);
+  const date      = document.getElementById('f-date').value;
+  const time      = document.getElementById('f-time').value;
+  const submitter = document.getElementById('f-submitter').value;
+  const note      = document.getElementById('f-note').value.trim();
+  const msg       = document.getElementById('submit-msg');
+  const btn       = document.getElementById('btn-submit');
+
+  if (!submitter) { msg.textContent = '点検者名を入力してください'; msg.className = 'submit-msg err'; return; }
+
+  const items = {};
+  PATTERNS[dev.pattern].forEach(item => {
+    const checked = document.querySelector(`input[name="item-${item}"]:checked`);
+    items[item] = checked ? checked.value : '';
+  });
+
+  const unchecked = PATTERNS[dev.pattern].filter(item => !items[item]);
+  if (unchecked.length > 0) {
+    msg.textContent = `未選択の項目があります：${unchecked.join('、')}`;
+    msg.className = 'submit-msg err';
+    return;
+  }
+
+  const data = { date, time, submitter, items, note };
+
+  btn.disabled = true;
+  msg.textContent = '送信中...';
+  msg.className = 'submit-msg';
+
+  const mediaData = [];
+  for (const m of mediaFiles) {
+    const base64 = await fileToBase64(m.file);
+    mediaData.push({ name: m.file.name, type: m.type, mimeType: m.file.type, data: base64 });
+  }
+
+  const payload = {
+    sheetName: '点検記録',
+    date, time, submitter,
+    tag, deviceName: dev.name, pattern: dev.pattern,
+    items, note, media: mediaData
+  };
+
+  try {
+    const res  = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      msg.textContent = '✔ 送信しました';
+      msg.className = 'submit-msg ok';
+      mediaFiles.length = 0;
+      renderMediaPreview();
+
+      // 送信済みに昇格
+      sentResults[tag] = data;
+      results[tag]     = data;
+      delete tempResults[tag];
+
+      // localStorage更新
+      localStorage.setItem(getStorageKey(tag, 'sent'), JSON.stringify(data));
+      localStorage.removeItem(getStorageKey(tag, 'temp'));
+      updateSidebarBadge(tag);
+      updateProgress();
+      saveIndexFlag();
+    } else {
+      throw new Error(json.message || 'エラー');
+    }
+  } catch(e) {
+    msg.textContent = '送信エラー: ' + e.message;
+    msg.className = 'submit-msg err';
+  }
+  btn.disabled = false;
+}
 function downloadExcel() {
   const SHEET_ID = '1HGtBnIGyTMh7OAZz0ciDyJBeqF60fnDalP7ESDrDbhM';
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=xlsx&sheet=点検記録`;
