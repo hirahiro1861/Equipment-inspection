@@ -90,6 +90,27 @@
   .field-row input:focus, .field-row textarea:focus { border-color: var(--primary-light); }
   .field-row textarea { resize: vertical; min-height: 56px; }
 
+  /* ===== ダイヤルピッカー ===== */
+  .dial-picker-wrap { position: relative; }
+  .dial-display { border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 14px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: border-color 0.15s; }
+  .dial-display:hover { border-color: var(--primary-light); }
+  .dial-display .dial-arrow { color: var(--muted); font-size: 12px; }
+  .dial-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
+  .dial-modal-overlay.open { display: flex; }
+  .dial-modal { background: #fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
+  .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .dial-modal-title { font-size: 14px; font-weight: 700; }
+  .dial-modal-done { background: linear-gradient(135deg, #922b21, #c0392b); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .dial-scroll-area { position: relative; height: 200px; overflow: hidden; }
+  .dial-scroll-area::before, .dial-scroll-area::after { content: ''; position: absolute; left: 0; right: 0; height: 70px; z-index: 2; pointer-events: none; }
+  .dial-scroll-area::before { top: 0; background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0)); }
+  .dial-scroll-area::after { bottom: 0; background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0)); }
+  .dial-selector-line { position: absolute; left: 20px; right: 20px; top: 50%; transform: translateY(-50%); height: 44px; border-top: 2px solid #c0392b; border-bottom: 2px solid #c0392b; border-radius: 4px; z-index: 1; pointer-events: none; }
+  .dial-list { position: absolute; left: 0; right: 0; top: 0; cursor: grab; touch-action: none; }
+  .dial-list:active { cursor: grabbing; }
+  .dial-item { height: 44px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600; color: var(--muted); transition: color 0.15s, font-size 0.15s; user-select: none; }
+  .dial-item.selected { color: var(--text); font-size: 20px; }
+
   /* ===== 点検グループ ===== */
   .check-group {
     background: var(--surface);
@@ -251,6 +272,20 @@
 </head>
 <body>
 
+<!-- ダイヤルピッカーモーダル -->
+<div class="dial-modal-overlay" id="dial-overlay" onclick="dialOverlayClick(event)">
+  <div class="dial-modal">
+    <div class="dial-modal-header">
+      <span class="dial-modal-title">点検者を選択</span>
+      <button class="dial-modal-done" onclick="closeDial()">完了</button>
+    </div>
+    <div class="dial-scroll-area">
+      <div class="dial-selector-line"></div>
+      <div class="dial-list" id="dial-list"></div>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="header-left">
     <button class="btn-back" onclick="location.href='index.html'">← 戻る</button>
@@ -286,7 +321,13 @@
       </div>
       <div class="field-row">
         <label class="field-label">点検者</label>
-        <input type="text" id="f-submitter" placeholder="氏名">
+        <div class="dial-picker-wrap">
+          <div class="dial-display" onclick="openDial('f-submitter')">
+            <span id="f-submitter-label">選択してください</span>
+            <span class="dial-arrow">▼</span>
+          </div>
+          <input type="hidden" id="f-submitter" value="">
+        </div>
       </div>
     </div>
   </div>
@@ -324,6 +365,57 @@
 
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpIRGowSYlple1BEA75lHbxlv_K_LTBw0gFjW0R7swNhKMcW79Boi0BuUl59SJSGRf/exec';
+
+// ===== 点検者リスト =====
+const INSPECTORS = ['大平', '坂本'];
+
+// ===== ダイヤルピッカー =====
+const ITEM_H = 44, PADDING = 3;
+let dialTargetId = null, dialIndex = 0, dialStartY = 0, dialStartOffset = 0, dialOffset = 0, dialDragging = false;
+
+function buildDialList() {
+  const list = document.getElementById('dial-list');
+  if (!list) return;
+  const items = [...Array(PADDING).fill(''), ...INSPECTORS, ...Array(PADDING).fill('')];
+  list.style.top = `${(200 / 2) - (ITEM_H / 2) - PADDING * ITEM_H}px`;
+  list.innerHTML = items.map((n, i) => `<div class="dial-item" data-idx="${i - PADDING}">${n}</div>`).join('');
+  applyDialTransform(0); attachDialEvents();
+}
+function applyDialTransform(offset) {
+  dialOffset = Math.max(-(INSPECTORS.length - 1) * ITEM_H, Math.min(0, offset));
+  const list = document.getElementById('dial-list');
+  if (list) list.style.transform = `translateY(${dialOffset}px)`;
+  dialIndex = Math.max(0, Math.min(INSPECTORS.length - 1, Math.round(-dialOffset / ITEM_H)));
+  document.querySelectorAll('.dial-item').forEach(el => el.classList.toggle('selected', parseInt(el.dataset.idx) === dialIndex));
+}
+function snapDial() { applyDialTransform(-dialIndex * ITEM_H); }
+function attachDialEvents() {
+  const list = document.getElementById('dial-list');
+  if (!list) return;
+  list.addEventListener('touchstart', e => { dialDragging = true; dialStartY = e.touches[0].clientY; dialStartOffset = dialOffset; }, { passive: true });
+  list.addEventListener('touchmove',  e => { if (dialDragging) applyDialTransform(dialStartOffset + e.touches[0].clientY - dialStartY); }, { passive: true });
+  list.addEventListener('touchend',   () => { dialDragging = false; snapDial(); });
+  list.addEventListener('mousedown',  e => { dialDragging = true; dialStartY = e.clientY; dialStartOffset = dialOffset; });
+  window.addEventListener('mousemove',e => { if (dialDragging) applyDialTransform(dialStartOffset + e.clientY - dialStartY); });
+  window.addEventListener('mouseup',  () => { if (dialDragging) { dialDragging = false; snapDial(); } });
+}
+function openDial(targetId) {
+  dialTargetId = targetId;
+  const idx = INSPECTORS.indexOf(document.getElementById(targetId)?.value);
+  buildDialList(); applyDialTransform(idx >= 0 ? -idx * ITEM_H : 0); snapDial();
+  document.getElementById('dial-overlay').classList.add('open');
+}
+function closeDial() {
+  const selected = INSPECTORS[dialIndex] || '';
+  if (dialTargetId) {
+    const h = document.getElementById(dialTargetId);
+    const l = document.getElementById(dialTargetId + '-label');
+    if (h) h.value = selected;
+    if (l) l.textContent = selected || '選択してください';
+  }
+  document.getElementById('dial-overlay').classList.remove('open');
+}
+function dialOverlayClick(e) { if (e.target === document.getElementById('dial-overlay')) closeDial(); }
 
 // ===== 点検項目定義（チェック内容付き） =====
 const GROUPS = [
