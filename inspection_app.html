@@ -1267,7 +1267,21 @@ function insertPreset(text) {
 }
 
 // ===== 点検者リスト =====
-const INSPECTORS = ['大平', '坂本'];
+// スプレッドシート「設定」シートC列（C2:C11）から取得
+// 追加・変更はスプレッドシートのC列を編集するだけでOK（コード変更不要）
+let INSPECTORS = ['大平　洋行', '坂本　貴志']; // フォールバック用（オフライン時）
+
+async function loadInspectors() {
+  try {
+    const res = await fetch(`${GAS_URL}?action=getInspectors`);
+    const data = await res.json();
+    if (data.inspectors && data.inspectors.length > 0) {
+      INSPECTORS = data.inspectors;
+    }
+  } catch (e) {
+    // オフライン時はフォールバック値を使用
+  }
+}
 
 // ===== ダイヤルピッカー =====
 const ITEM_H = 44;       // 1アイテムの高さ
@@ -1354,7 +1368,8 @@ function attachDialEvents() {
   });
 }
 
-function openDial(targetId) {
+async function openDial(targetId) {
+  await loadInspectors();
   dialTargetId = targetId;
   const currentVal = document.getElementById(targetId)?.value;
   const idx = INSPECTORS.indexOf(currentVal);
