@@ -894,39 +894,98 @@ function applyTheme(theme) {
 
 
 
+
+
+<style>
+/* ===== スワイプアニメーション ===== */
+body {
+  overflow-x: hidden;
+}
+#swipe-wrapper {
+  transition: transform 0.0s;
+  will-change: transform;
+}
+#swipe-wrapper.animating {
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+</style>
 <script>
-// ===== スワイプで点検表切り替え =====
+// ===== スワイプで点検表切り替え（アニメーション付き） =====
 (function() {
-  const PREV = 'inspection_app.html';
-  const NEXT = 'boiler_daily.html';
-  const THRESHOLD   = 60;   // 横スワイプ判定距離（px）
-  const MAX_VERTICAL = 40;  // 縦ずれの許容量（px）
+  const PREV      = 'inspection_app.html';
+  const NEXT      = 'boiler_daily.html';
+  const THRESHOLD  = 50;   // 遷移確定距離（px）
+  const MAX_VERT   = 40;   // 縦ずれ許容（px）
 
-  let startX = 0, startY = 0, moved = false;
+  const wrapper = document.body;
+  let startX = 0, startY = 0;
+  let currentX = 0;
+  let tracking = false;
+  let direction = 0; // 1=右, -1=左
 
-  document.body.addEventListener('touchstart', function(e) {
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    moved  = false;
+  function setTranslate(x, animate) {
+    if (animate) {
+      wrapper.classList.add('animating');
+    } else {
+      wrapper.classList.remove('animating');
+    }
+    wrapper.style.transform = `translateX(${x}px)`;
+  }
+
+  document.addEventListener('touchstart', function(e) {
+    startX   = e.touches[0].clientX;
+    startY   = e.touches[0].clientY;
+    currentX = 0;
+    tracking = true;
+    direction = 0;
+    wrapper.classList.remove('animating');
+    wrapper.style.transform = 'translateX(0)';
   }, { passive: true });
 
-  document.body.addEventListener('touchmove', function(e) {
-    moved = true;
+  document.addEventListener('touchmove', function(e) {
+    if (!tracking) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+
+    // 縦スクロールが大きければ追従しない
+    if (direction === 0) {
+      if (Math.abs(dy) > MAX_VERT && Math.abs(dx) < Math.abs(dy)) {
+        tracking = false;
+        setTranslate(0, true);
+        return;
+      }
+      if (Math.abs(dx) > 10) direction = dx > 0 ? 1 : -1;
+    }
+
+    currentX = dx;
+    // 抵抗感を出す（引っ張りすぎると重くなる）
+    const resistance = 0.4;
+    setTranslate(dx * resistance, false);
   }, { passive: true });
 
-  document.body.addEventListener('touchend', function(e) {
+  document.addEventListener('touchend', function(e) {
+    if (!tracking) return;
+    tracking = false;
+
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
 
-    // 縦移動が大きい場合はスクロールとみなして無視
-    if (Math.abs(dy) > MAX_VERTICAL) return;
-    // 横移動が閾値未満なら無視
-    if (Math.abs(dx) < THRESHOLD) return;
+    if (Math.abs(dy) > MAX_VERT) {
+      setTranslate(0, true);
+      return;
+    }
 
-    if (dx > 0) {
-      window.location.href = NEXT;  // 右スワイプ → 次へ
+    if (dx > THRESHOLD) {
+      // 右スワイプ → 次へ：右にスライドアウト
+      setTranslate(window.innerWidth, true);
+      setTimeout(() => { window.location.href = NEXT; }, 280);
+    } else if (dx < -THRESHOLD) {
+      // 左スワイプ → 前へ：左にスライドアウト
+      setTranslate(-window.innerWidth, true);
+      setTimeout(() => { window.location.href = PREV; }, 280);
     } else {
-      window.location.href = PREV;  // 左スワイプ → 前へ
+      // 閾値未満：元に戻す
+      setTranslate(0, true);
     }
   }, { passive: true });
 })();
