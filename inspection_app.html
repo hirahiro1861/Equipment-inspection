@@ -546,12 +546,11 @@
 <header>
   <div class="header-left" style="display:flex;align-items:center;gap:10px;">
     <button onclick="location.href='index.html'" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:5px;padding:5px 10px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;">← 戻る</button>
-    <h1>🔧 機器点検表</h1>
+    <h1 style="white-space:nowrap;font-size:clamp(13px,3vw,18px);">🔧 機器点検表</h1>
   </div>
   <div class="header-right">
     <span id="progress-text">0 / 44</span>
     <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
-    <button onclick="downloadExcel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:5px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;">📥 Excel保存</button>
     <button id="theme-btn" onclick="toggleTheme()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:5px;padding:5px 10px;font-size:16px;cursor:pointer;line-height:1;">🌙</button>
   </div>
 </header>
