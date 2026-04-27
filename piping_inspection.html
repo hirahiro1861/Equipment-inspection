@@ -221,6 +221,24 @@
   .radio-group label:has(input[value="異常あり"]:checked){ background: #fdedec; border-color: var(--danger); color: var(--danger); }
   .radio-group label:has(input[value="該当なし"]:checked){ background: #eef2f7; border-color: #aab;          color: var(--muted); }
 
+  /* ===== 修理必要ボタン ===== */
+  .btn-repair-needed {
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 12px; border: 2px solid #7d3c98; border-radius: 20px;
+    font-size: 13px; font-family: inherit; font-weight: 700;
+    color: #7d3c98; background: var(--input-bg);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+  }
+  .btn-repair-needed.active { background: #7d3c98; color: #fff; border-color: #7d3c98; }
+  .btn-repair-needed::before { content: '🔧'; font-size: 12px; }
+
+  /* ===== 修理依頼書情報エリア ===== */
+  .repair-info-section {
+    background: #f5eef8; border: 2px solid #7d3c98; border-radius: 8px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px;
+  }
+  .repair-info-title { font-size: 12px; font-weight: 700; color: #7d3c98; letter-spacing: 0.06em; text-transform: uppercase; }
+
   /* ===== 備考 ===== */
   .field-row textarea { resize: vertical; min-height: 64px; }
   .preset-palette { background: #f0f4f8; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
@@ -417,6 +435,30 @@ function hasNG(r) {
   return Object.values(r.items || {}).some(v => v === '異常あり' || v === '要注意');
 }
 
+// ===== 修理必要トグル =====
+let requireRepair = false;
+
+function toggleRepair() {
+  requireRepair = !requireRepair;
+  const btn = document.getElementById('repair-btn-mokuji');
+  if (btn) btn.classList.toggle('active', requireRepair);
+  const sec = document.getElementById('repair-section');
+  if (sec) sec.style.display = requireRepair ? '' : 'none';
+}
+
+// ===== 所属上司リスト =====
+let SUPERVISORS = [];
+
+async function loadSupervisors() {
+  try {
+    const res = await fetch(`${GAS_URL}?action=getSupervisors`);
+    const data = await res.json();
+    if (data.supervisors && data.supervisors.length > 0) {
+      SUPERVISORS = data.supervisors;
+    }
+  } catch (e) { /* オフライン時はフォールバック */ }
+}
+
 // ===== 進捗更新（送信済み件数） =====
 function updateProgress() {
   const done = Object.keys(sentResults).length;
@@ -453,6 +495,7 @@ function showForm(p) {
 
   // 目視ラジオ
   const savedVal = saved.items?.['目視'] || '';
+  const savedRepair = saved.requireRepair || false;
   const opts = ['異常なし', '要注意', '異常あり', '該当なし'];
   const radios = opts.map(o =>
     `<label><input type="radio" name="item-目視" value="${o}" ${savedVal === o ? 'checked' : ''} onchange="checkAllNormal()"><span>${o}</span></label>`
@@ -506,9 +549,29 @@ function showForm(p) {
         </div>
 
         <div>
-          <div class="inspection-item">
+          <div class="inspection-item" style="flex-wrap:wrap;gap:8px;">
             <span class="inspection-label">目視</span>
-            <div class="radio-group">${radios}</div>
+            <div class="radio-group" style="flex:1;">${radios}</div>
+            <button type="button"
+              class="btn-repair-needed ${savedRepair ? 'active' : ''}"
+              id="repair-btn-mokuji"
+              onclick="toggleRepair()">修理依頼</button>
+          </div>
+        </div>
+
+        <div id="repair-section" style="${savedRepair ? '' : 'display:none'}">
+          <div class="repair-info-section">
+            <div class="repair-info-title">🔧 修理依頼書情報</div>
+            <div class="field-row">
+              <label class="field-label">所属上司</label>
+              <div class="dial-picker-wrap">
+                <div class="dial-display" onclick="openDial('f-supervisor')">
+                  <span id="f-supervisor-label">${saved.supervisor || '選択してください'}</span>
+                  <span class="dial-arrow">▼</span>
+                </div>
+                <input type="hidden" id="f-supervisor" value="${saved.supervisor || ''}">
+              </div>
+            </div>
           </div>
         </div>
 
@@ -742,7 +805,15 @@ async function submitForm(no) {
   if (!checked) { msg.textContent = '目視の結果を選択してください'; msg.className = 'submit-msg err'; return; }
 
   const items = { '目視': checked.value };
-  const data  = { date, time, shift, submitter, items, note, pipeName: p.name };
+  const supervisor = document.getElementById('f-supervisor')?.value.trim() || '';
+
+  if (requireRepair && !supervisor) {
+    msg.textContent = '修理依頼書のため所属上司を選択してください';
+    msg.className = 'submit-msg err';
+    return;
+  }
+
+  const data  = { date, time, shift, submitter, items, note, pipeName: p.name, requireRepair, supervisor };
 
   btn.disabled = true;
   msg.textContent = '送信中...';
@@ -758,7 +829,7 @@ async function submitForm(no) {
     sheetName: '配管点検記録',
     date, time, shift, submitter,
     pipeNo: p.no, pipeName: p.name,
-    items, note, media: mediaData
+    items, note, requireRepair, supervisor, media: mediaData
   };
 
   try {
@@ -825,10 +896,12 @@ let dialStartOffset = 0;
 let dialOffset = 0;
 let dialDragging = false;
 
-function buildDialList() {
+let dialList = [];
+
+function buildDialList(listData) {
   const list = document.getElementById('dial-list');
   if (!list) return;
-  const items = [...Array(PADDING).fill(''), ...INSPECTORS, ...Array(PADDING).fill('')];
+  const items = [...Array(PADDING).fill(''), ...listData, ...Array(PADDING).fill('')];
   list.style.top = `${(200 / 2) - (ITEM_H / 2) - PADDING * ITEM_H}px`;
   list.innerHTML = items.map((name, i) => `<div class="dial-item" data-idx="${i - PADDING}">${name}</div>`).join('');
   applyDialTransform(0);
@@ -836,10 +909,10 @@ function buildDialList() {
 }
 
 function applyDialTransform(offset) {
-  dialOffset = Math.max(-(INSPECTORS.length - 1) * ITEM_H, Math.min(0, offset));
+  dialOffset = Math.max(-(dialList.length - 1) * ITEM_H, Math.min(0, offset));
   const list = document.getElementById('dial-list');
   if (list) list.style.transform = `translateY(${dialOffset}px)`;
-  dialIndex = Math.max(0, Math.min(INSPECTORS.length - 1, Math.round(-dialOffset / ITEM_H)));
+  dialIndex = Math.max(0, Math.min(dialList.length - 1, Math.round(-dialOffset / ITEM_H)));
   document.querySelectorAll('.dial-item').forEach(el => {
     el.classList.toggle('selected', parseInt(el.dataset.idx) === dialIndex);
   });
@@ -859,18 +932,24 @@ function attachDialEvents() {
 }
 
 async function openDial(targetId) {
-  await loadInspectors();
+  if (targetId === 'f-supervisor') {
+    await loadSupervisors();
+    dialList = SUPERVISORS.length > 0 ? SUPERVISORS : ['（未設定）'];
+  } else {
+    await loadInspectors();
+    dialList = INSPECTORS;
+  }
   dialTargetId = targetId;
   const currentVal = document.getElementById(targetId)?.value;
-  const idx = INSPECTORS.indexOf(currentVal);
-  buildDialList();
+  const idx = dialList.indexOf(currentVal);
+  buildDialList(dialList);
   applyDialTransform(idx >= 0 ? -idx * ITEM_H : 0);
   snapDial();
   document.getElementById('dial-overlay').classList.add('open');
 }
 
 function closeDial() {
-  const selected = INSPECTORS[dialIndex] || '';
+  const selected = dialList[dialIndex] || '';
   if (dialTargetId) {
     const hidden = document.getElementById(dialTargetId);
     const label  = document.getElementById(dialTargetId + '-label');

@@ -162,6 +162,25 @@
   .judge-group label:has(input[value="×"]:checked) { background: #fdedec; border-color: #c0392b; color: #c0392b; }
   .judge-group label:has(input[value="／"]:checked) { background: #eef2f7; border-color: #aab;    color: var(--muted); }
 
+  /* ===== 修理必要ボタン ===== */
+  .btn-repair-needed {
+    padding: 5px 14px; border: 2px solid #7d3c98; border-radius: 20px;
+    font-size: 12px; font-family: inherit; font-weight: 700;
+    color: #7d3c98; background: #fff;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap; margin-top: 8px; margin-left: 34px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .btn-repair-needed.active { background: #7d3c98; color: #fff; }
+  .btn-repair-needed::before { content: '🔧'; font-size: 11px; }
+
+  /* ===== 修理依頼書情報エリア ===== */
+  .repair-info-card {
+    background: #f5eef8; border: 2px solid #7d3c98; border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .repair-info-title { font-size: 12px; font-weight: 700; color: #7d3c98; letter-spacing: 0.06em; text-transform: uppercase; }
+
   /* ===== 指示値入力 ===== */
   .value-input-wrap {
     display: flex; align-items: center; gap: 6px;
@@ -360,6 +379,22 @@
     </div>
   </div>
 
+  <!-- 修理依頼書情報 -->
+  <div class="repair-info-card" id="repair-section" style="display:none">
+    <div class="repair-info-title">🔧 修理依頼書情報</div>
+    <div class="field-row">
+      <label class="field-label">所属上司</label>
+      <div class="dial-picker-wrap">
+        <div class="dial-display" onclick="openDial('f-supervisor')">
+          <span id="f-supervisor-label">選択してください</span>
+          <span class="dial-arrow">▼</span>
+        </div>
+        <input type="hidden" id="f-supervisor" value="">
+      </div>
+    </div>
+    <div style="font-size:12px;color:#7d3c98;">※ 修理依頼が必要な項目の「修理依頼」ボタンをONにしてください</div>
+  </div>
+
   <!-- 感想・特記事項 -->
   <div class="note-card">
     <label class="field-label">感想・特記事項</label>
@@ -388,6 +423,29 @@
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbww9ISmeHo-cbwlfwVTHOsP2eHacHIprniNiK5Q-nem-OL2QDlqnkv5csipdReeRYSs1w/exec';
 
+// ===== 修理必要トグル =====
+const repairItems = {};
+
+function toggleRepair(no) {
+  repairItems[no] = !repairItems[no];
+  const btn = document.getElementById('repair-btn-' + no);
+  if (btn) btn.classList.toggle('active', repairItems[no]);
+  const anyRepair = Object.values(repairItems).some(v => v);
+  const sec = document.getElementById('repair-section');
+  if (sec) sec.style.display = anyRepair ? '' : 'none';
+}
+
+// ===== 所属上司リスト =====
+let SUPERVISORS = [];
+
+async function loadSupervisors() {
+  try {
+    const res = await fetch(`${GAS_URL}?action=getSupervisors`);
+    const data = await res.json();
+    if (data.supervisors && data.supervisors.length > 0) SUPERVISORS = data.supervisors;
+  } catch (e) { /* オフライン時フォールバック */ }
+}
+
 // ===== 点検者リスト =====
 // スプレッドシート「設定」シートC列（C2:C11）から取得
 // 追加・変更はスプレッドシートのC列を編集するだけでOK（コード変更不要）
@@ -409,19 +467,21 @@ async function loadInspectors() {
 const ITEM_H = 44, PADDING = 3;
 let dialTargetId = null, dialIndex = 0, dialStartY = 0, dialStartOffset = 0, dialOffset = 0, dialDragging = false;
 
-function buildDialList() {
+let dialList = [];
+
+function buildDialList(listData) {
   const list = document.getElementById('dial-list');
   if (!list) return;
-  const items = [...Array(PADDING).fill(''), ...INSPECTORS, ...Array(PADDING).fill('')];
+  const items = [...Array(PADDING).fill(''), ...listData, ...Array(PADDING).fill('')];
   list.style.top = `${(200 / 2) - (ITEM_H / 2) - PADDING * ITEM_H}px`;
   list.innerHTML = items.map((n, i) => `<div class="dial-item" data-idx="${i - PADDING}">${n}</div>`).join('');
   applyDialTransform(0); attachDialEvents();
 }
 function applyDialTransform(offset) {
-  dialOffset = Math.max(-(INSPECTORS.length - 1) * ITEM_H, Math.min(0, offset));
+  dialOffset = Math.max(-(dialList.length - 1) * ITEM_H, Math.min(0, offset));
   const list = document.getElementById('dial-list');
   if (list) list.style.transform = `translateY(${dialOffset}px)`;
-  dialIndex = Math.max(0, Math.min(INSPECTORS.length - 1, Math.round(-dialOffset / ITEM_H)));
+  dialIndex = Math.max(0, Math.min(dialList.length - 1, Math.round(-dialOffset / ITEM_H)));
   document.querySelectorAll('.dial-item').forEach(el => el.classList.toggle('selected', parseInt(el.dataset.idx) === dialIndex));
 }
 function snapDial() { applyDialTransform(-dialIndex * ITEM_H); }
@@ -436,14 +496,20 @@ function attachDialEvents() {
   window.addEventListener('mouseup',  () => { if (dialDragging) { dialDragging = false; snapDial(); } });
 }
 async function openDial(targetId) {
-  await loadInspectors();
+  if (targetId === 'f-supervisor') {
+    await loadSupervisors();
+    dialList = SUPERVISORS.length > 0 ? SUPERVISORS : ['（未設定）'];
+  } else {
+    await loadInspectors();
+    dialList = INSPECTORS;
+  }
   dialTargetId = targetId;
-  const idx = INSPECTORS.indexOf(document.getElementById(targetId)?.value);
-  buildDialList(); applyDialTransform(idx >= 0 ? -idx * ITEM_H : 0); snapDial();
+  const idx = dialList.indexOf(document.getElementById(targetId)?.value);
+  buildDialList(dialList); applyDialTransform(idx >= 0 ? -idx * ITEM_H : 0); snapDial();
   document.getElementById('dial-overlay').classList.add('open');
 }
 function closeDial() {
-  const selected = INSPECTORS[dialIndex] || '';
+  const selected = dialList[dialIndex] || '';
   if (dialTargetId) {
     const h = document.getElementById(dialTargetId);
     const l = document.getElementById(dialTargetId + '-label');
@@ -530,6 +596,10 @@ GROUPS.forEach(g => {
           <input type="number" id="val-${item.no}" placeholder="${item.valueInput.placeholder}" step="0.01" min="0">
           <span class="unit">${item.valueInput.unit}</span>
         </div>` : ''}
+        <button type="button"
+          class="btn-repair-needed"
+          id="repair-btn-${item.no}"
+          onclick="toggleRepair(${item.no})">修理依頼</button>
       </div>
     `).join('')}
   `;
@@ -637,6 +707,16 @@ async function submitForm() {
   msg.textContent = '送信中...';
   msg.className = 'submit-msg';
 
+  const requireRepair = Object.values(repairItems).some(v => v);
+  const supervisor = document.getElementById('f-supervisor')?.value.trim() || '';
+
+  if (requireRepair && !supervisor) {
+    msg.textContent = '修理依頼書のため所属上司を選択してください';
+    msg.className = 'submit-msg err';
+    btn.disabled = false;
+    return;
+  }
+
   // localStorage に今日の完了フラグ書き込み
   const today = new Date().toISOString().slice(0, 10);
   localStorage.setItem(`vaporizer_daily_${today}`, JSON.stringify({ done: true, ts: Date.now() }));
@@ -652,6 +732,8 @@ async function submitForm() {
     date, time, submitter,
     gasMeter: gasMeter || '',
     items, values, note,
+    requireRepair, supervisor,
+    repairItems: { ...repairItems },
     media: mediaData
   };
 
