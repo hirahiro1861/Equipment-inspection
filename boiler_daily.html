@@ -92,19 +92,19 @@
 
   /* ===== ダイヤルピッカー ===== */
   .dial-picker-wrap { position: relative; }
-  .dial-display { border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 14px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: border-color 0.15s; }
+  .dial-display { border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 14px; background: var(--input-bg, #fff); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: border-color 0.15s; }
   .dial-display:hover { border-color: var(--primary-light); }
   .dial-display .dial-arrow { color: var(--muted); font-size: 12px; }
   .dial-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-start; justify-content: center; padding-top: 160px; }
   .dial-modal-overlay.open { display: flex; }
-  .dial-modal { background: #fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
-  .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); }
-  .dial-modal-title { font-size: 14px; font-weight: 700; }
+  .dial-modal { background: var(--surface, #fff); border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
+  .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface, #fff); }
+  .dial-modal-title { font-size: 14px; font-weight: 700; color: var(--text); }
   .dial-modal-done { background: linear-gradient(135deg, #922b21, #c0392b); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
   .dial-scroll-area { position: relative; height: 200px; overflow: hidden; }
   .dial-scroll-area::before, .dial-scroll-area::after { content: ''; position: absolute; left: 0; right: 0; height: 70px; z-index: 2; pointer-events: none; }
-  .dial-scroll-area::before { top: 0; background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0)); }
-  .dial-scroll-area::after { bottom: 0; background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0)); }
+  .dial-scroll-area::before { top: 0; background: linear-gradient(to bottom, var(--surface, #fff), transparent); }
+  .dial-scroll-area::after { bottom: 0; background: linear-gradient(to top, var(--surface, #fff), transparent); }
   .dial-selector-line { position: absolute; left: 20px; right: 20px; top: 50%; transform: translateY(-50%); height: 44px; border-top: 2px solid #c0392b; border-bottom: 2px solid #c0392b; border-radius: 4px; z-index: 1; pointer-events: none; }
   .dial-list { position: absolute; left: 0; right: 0; top: 0; cursor: grab; touch-action: none; }
   .dial-list:active { cursor: grabbing; }
@@ -129,7 +129,7 @@
   }
   .check-item {
     padding: 0;
-    border-bottom: 1px solid #f0f4f8;
+    border-bottom: 1px solid var(--border);
   }
   .check-item:last-child { border-bottom: none; }
 
@@ -143,17 +143,17 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
-  .check-item-top:active { background: #fdf0ef; }
+  .check-item-top:active { background: var(--hover-bg, #fdf0ef); }
 
   .check-no {
     width: 24px; height: 24px; border-radius: 50%;
-    background: #f0f4f8; color: var(--muted);
+    background: var(--bg, #f0f4f8); color: var(--muted);
     font-size: 11px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
   .check-label-wrap { flex: 1; display: flex; align-items: center; gap: 6px; }
-  .check-label { font-size: 14px; }
+  .check-label { font-size: 14px; color: var(--text); }
   .hint-icon {
     font-size: 15px; color: var(--muted); flex-shrink: 0;
     transition: transform 0.2s;
@@ -165,17 +165,17 @@
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.25s ease, padding 0.25s ease;
-    background: #fff8f7;
+    background: var(--bg3, #fff8f7);
     border-top: 0px solid var(--border);
   }
   .check-item.open .check-detail {
     max-height: 200px;
-    border-top: 1px solid #f5c6c0;
+    border-top: 1px solid var(--border);
   }
   .check-detail-inner {
     padding: 10px 16px 12px 52px;
     font-size: 12px;
-    color: #5d3030;
+    color: var(--muted);
     line-height: 1.7;
   }
 
@@ -186,7 +186,7 @@
   .value-input-wrap input[type=number] {
     width: 80px; border: 1px solid var(--border); border-radius: 5px;
     padding: 5px 8px; font-size: 14px; font-family: inherit;
-    text-align: right; background: #fff; outline: none;
+    text-align: right; background: var(--input-bg, #fff); color: var(--text); outline: none;
     transition: border-color 0.15s;
   }
   .value-input-wrap input[type=number]:focus { border-color: var(--primary-light); }
@@ -199,15 +199,16 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 15px; font-weight: 700;
     border: 2px solid var(--border);
+    background: var(--surface);
     cursor: pointer; transition: all 0.15s;
     user-select: none; flex-shrink: 0;
-    color: var(--muted);
+    color: var(--text);
   }
   .judge-group input[type=radio] { display: none; }
   .judge-group label:has(input[value="○"]:checked) { background: #d5f5e3; border-color: #27ae60; color: #1e8449; }
   .judge-group label:has(input[value="△"]:checked) { background: #fef9e7; border-color: #e67e22; color: #d68910; }
   .judge-group label:has(input[value="×"]:checked) { background: #fdedec; border-color: #c0392b; color: #c0392b; }
-  .judge-group label:has(input[value="／"]:checked) { background: #eef2f7; border-color: #aab;    color: var(--muted); }
+  .judge-group label:has(input[value="／"]:checked) { background: var(--bg, #eef2f7); border-color: #aab; color: var(--muted); }
 
   /* ===== 修理必要ボタン ===== */
   .btn-repair-needed {
@@ -271,10 +272,10 @@
   .progress-badge span { font-weight: 700; color: var(--text); }
 
   /* ===== メディア ===== */
-  .media-area { background: #f0f4f8; border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+  .media-area { background: var(--bg, #f0f4f8); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
   .media-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .media-btns button {
-    background: #fff; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--input-bg, #fff); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
     padding: 8px 14px; font-size: 13px; font-family: inherit; cursor: pointer;
     display: flex; align-items: center; gap: 6px; transition: all 0.15s;
   }

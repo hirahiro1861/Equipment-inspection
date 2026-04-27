@@ -93,19 +93,19 @@
 
   /* ===== ダイヤルピッカー ===== */
   .dial-picker-wrap { position: relative; }
-  .dial-display { border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 14px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: border-color 0.15s; }
+  .dial-display { border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 14px; background: var(--input-bg, #fff); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: border-color 0.15s; }
   .dial-display:hover { border-color: var(--purple-light); }
   .dial-display .dial-arrow { color: var(--muted); font-size: 12px; }
   .dial-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-start; justify-content: center; padding-top: 160px; }
   .dial-modal-overlay.open { display: flex; }
-  .dial-modal { background: #fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
-  .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); }
-  .dial-modal-title { font-size: 14px; font-weight: 700; }
+  .dial-modal { background: var(--surface, #fff); border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
+  .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface, #fff); }
+  .dial-modal-title { font-size: 14px; font-weight: 700; color: var(--text); }
   .dial-modal-done { background: linear-gradient(135deg, #6c3483, #8e44ad); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
   .dial-scroll-area { position: relative; height: 200px; overflow: hidden; }
   .dial-scroll-area::before, .dial-scroll-area::after { content: ''; position: absolute; left: 0; right: 0; height: 70px; z-index: 2; pointer-events: none; }
-  .dial-scroll-area::before { top: 0; background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0)); }
-  .dial-scroll-area::after { bottom: 0; background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0)); }
+  .dial-scroll-area::before { top: 0; background: linear-gradient(to bottom, var(--surface, #fff), transparent); }
+  .dial-scroll-area::after { bottom: 0; background: linear-gradient(to top, var(--surface, #fff), transparent); }
   .dial-selector-line { position: absolute; left: 20px; right: 20px; top: 50%; transform: translateY(-50%); height: 44px; border-top: 2px solid var(--purple-light); border-bottom: 2px solid var(--purple-light); border-radius: 4px; z-index: 1; pointer-events: none; }
   .dial-list { position: absolute; left: 0; right: 0; top: 0; cursor: grab; touch-action: none; }
   .dial-list:active { cursor: grabbing; }
@@ -126,7 +126,7 @@
 
   /* ===== 点検アイテム（判定基準付き） ===== */
   .check-item {
-    padding: 12px 16px; border-bottom: 1px solid #f0f4f8;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
   }
   .check-item:last-child { border-bottom: none; }
   .check-item-top {
@@ -134,16 +134,16 @@
   }
   .check-no {
     width: 24px; height: 24px; border-radius: 50%;
-    background: #f5eef8; color: var(--purple-light);
+    background: var(--bg, #f5eef8); color: var(--purple-light);
     font-size: 11px; font-weight: 700;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     margin-top: 2px;
   }
   .check-label-wrap { flex: 1; }
-  .check-label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 3px; }
+  .check-label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 3px; color: var(--text); }
   .check-criteria {
     font-size: 11px; color: var(--muted);
-    background: #f8fafc; border: 1px solid var(--border);
+    background: var(--bg3, #f8fafc); border: 1px solid var(--border);
     border-radius: 4px; padding: 4px 8px;
     display: inline-block; line-height: 1.5;
   }
@@ -153,20 +153,21 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 15px; font-weight: 700;
     border: 2px solid var(--border);
+    background: var(--surface);
     cursor: pointer; transition: all 0.15s;
-    user-select: none; flex-shrink: 0; color: var(--muted);
+    user-select: none; flex-shrink: 0; color: var(--text);
   }
   .judge-group input[type=radio] { display: none; }
   .judge-group label:has(input[value="○"]:checked) { background: #d5f5e3; border-color: #27ae60; color: #1e8449; }
   .judge-group label:has(input[value="△"]:checked) { background: #fef9e7; border-color: #e67e22; color: #d68910; }
   .judge-group label:has(input[value="×"]:checked) { background: #fdedec; border-color: #c0392b; color: #c0392b; }
-  .judge-group label:has(input[value="／"]:checked) { background: #eef2f7; border-color: #aab;    color: var(--muted); }
+  .judge-group label:has(input[value="／"]:checked) { background: var(--bg, #eef2f7); border-color: #aab; color: var(--muted); }
 
   /* ===== 修理必要ボタン ===== */
   .btn-repair-needed {
     padding: 5px 14px; border: 2px solid #7d3c98; border-radius: 20px;
     font-size: 12px; font-family: inherit; font-weight: 700;
-    color: #7d3c98; background: #fff;
+    color: #7d3c98; background: var(--input-bg, #fff);
     cursor: pointer; transition: all 0.15s; white-space: nowrap; margin-top: 8px; margin-left: 34px;
     display: inline-flex; align-items: center; gap: 4px;
   }
@@ -189,7 +190,7 @@
   .value-input-wrap input[type=number] {
     width: 110px; border: 1px solid var(--border); border-radius: 5px;
     padding: 6px 10px; font-size: 15px; font-family: inherit;
-    text-align: right; background: #fff; outline: none;
+    text-align: right; background: var(--input-bg, #fff); color: var(--text); outline: none;
     transition: border-color 0.15s;
   }
   .value-input-wrap input[type=number]:focus { border-color: var(--purple-light); }
@@ -212,7 +213,8 @@
   }
   .gas-meter-input input {
     border: 1px solid var(--border); border-radius: 5px; padding: 8px 12px;
-    font-size: 18px; font-family: inherit; width: 160px; background: #fff; outline: none;
+    font-size: 18px; font-family: inherit; width: 160px;
+    background: var(--input-bg, #fff); color: var(--text); outline: none;
     text-align: right; transition: border-color 0.15s;
   }
   .gas-meter-input input:focus { border-color: var(--purple-light); }
@@ -226,10 +228,10 @@
   }
 
   /* ===== メディア ===== */
-  .media-area { background: #f0f4f8; border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+  .media-area { background: var(--bg, #f0f4f8); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
   .media-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .media-btns button {
-    background: #fff; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--input-bg, #fff); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
     padding: 8px 14px; font-size: 13px; font-family: inherit; cursor: pointer;
     display: flex; align-items: center; gap: 6px; transition: all 0.15s;
   }

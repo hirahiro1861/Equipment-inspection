@@ -166,19 +166,19 @@
 
   /* ===== ダイヤルピッカー ===== */
   .dial-picker-wrap { position: relative; }
-  .dial-display { border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 14px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: border-color 0.15s; }
+  .dial-display { border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 14px; background: var(--input-bg, #fff); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: border-color 0.15s; }
   .dial-display:hover { border-color: var(--teal); }
   .dial-display .dial-arrow { color: var(--muted); font-size: 12px; }
   .dial-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-start; justify-content: center; padding-top: 160px; }
   .dial-modal-overlay.open { display: flex; }
-  .dial-modal { background: #fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
-  .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .dial-modal { background: var(--surface, #fff); border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
+  .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface, #fff); }
   .dial-modal-title { font-size: 14px; font-weight: 700; color: var(--text); }
   .dial-modal-done { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
   .dial-scroll-area { position: relative; height: 200px; overflow: hidden; }
   .dial-scroll-area::before, .dial-scroll-area::after { content: ''; position: absolute; left: 0; right: 0; height: 70px; z-index: 2; pointer-events: none; }
-  .dial-scroll-area::before { top: 0; background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0)); }
-  .dial-scroll-area::after { bottom: 0; background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0)); }
+  .dial-scroll-area::before { top: 0; background: linear-gradient(to bottom, var(--surface, #fff), transparent); }
+  .dial-scroll-area::after { bottom: 0; background: linear-gradient(to top, var(--surface, #fff), transparent); }
   .dial-selector-line { position: absolute; left: 20px; right: 20px; top: 50%; transform: translateY(-50%); height: 44px; border-top: 2px solid var(--teal); border-bottom: 2px solid var(--teal); border-radius: 4px; z-index: 1; pointer-events: none; }
   .dial-list { position: absolute; left: 0; right: 0; top: 0; cursor: grab; touch-action: none; }
   .dial-list:active { cursor: grabbing; }
@@ -199,7 +199,7 @@
 
   /* ===== 点検項目（目視） ===== */
   .inspection-item {
-    background: #f8fafc;
+    background: var(--bg3, #f8fafc);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 12px 14px;
@@ -207,19 +207,20 @@
     align-items: center;
     gap: 12px;
   }
-  .inspection-label { font-size: 14px; font-weight: 600; flex: 0 0 60px; }
+  .inspection-label { font-size: 14px; font-weight: 600; flex: 0 0 60px; color: var(--text); }
   .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
   .radio-group label {
     display: flex; align-items: center; gap: 5px; cursor: pointer;
     padding: 5px 12px; border: 1px solid var(--border); border-radius: 20px;
     font-size: 13px; transition: all 0.15s; user-select: none;
+    background: var(--surface); color: var(--text);
   }
   .radio-group input[type=radio] { display: none; }
   .radio-group input[type=radio]:checked + span { font-weight: 700; }
   .radio-group label:has(input[value="異常なし"]:checked) { background: #d5f5e3; border-color: var(--accent); color: #1e8449; }
   .radio-group label:has(input[value="要注意"]:checked)  { background: #fef9e7; border-color: var(--warn);   color: #d68910; }
   .radio-group label:has(input[value="異常あり"]:checked){ background: #fdedec; border-color: var(--danger); color: var(--danger); }
-  .radio-group label:has(input[value="該当なし"]:checked){ background: #eef2f7; border-color: #aab;          color: var(--muted); }
+  .radio-group label:has(input[value="該当なし"]:checked){ background: var(--bg, #eef2f7); border-color: #aab; color: var(--muted); }
 
   /* ===== 修理必要ボタン ===== */
   .btn-repair-needed {
@@ -252,10 +253,10 @@
   .preset-btns button:active { background: var(--teal); color: #fff; border-color: var(--teal); }
 
   /* ===== メディア ===== */
-  .media-area { background: #f0f4f8; border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+  .media-area { background: var(--bg, #f0f4f8); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
   .media-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .media-btns button {
-    background: #fff; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--input-bg, #fff); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
     padding: 8px 14px; font-size: 13px; font-family: inherit; cursor: pointer;
     display: flex; align-items: center; gap: 6px; transition: all 0.15s;
   }
