@@ -1222,7 +1222,7 @@ async function submitForm(tag) {
   };
 
   try {
-    const res  = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+    const res  = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
     const json = await res.json();
     if (json.status === 'ok') {
       msg.textContent = '✔ 送信しました';
