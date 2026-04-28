@@ -91,27 +91,16 @@
   }
   .field-row input:focus, .field-row textarea:focus { border-color: var(--purple-light); }
 
-  /* ===== ダイヤルピッカー ===== */
-  .dial-picker-wrap { position: relative; }
+  /* ===== インラインドロップダウン ===== */
   .dial-display { border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 14px; background: var(--input-bg, #fff); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: border-color 0.15s; }
   .dial-display:hover { border-color: var(--purple-light); }
-  .dial-display .dial-arrow { color: var(--muted); font-size: 12px; }
-  .dial-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
-  .dial-modal-overlay.open { display: flex; }
-  .dial-modal { background: var(--surface, #fff); border-radius: 16px 16px 0 0;
-    max-height: 80vh; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
-  .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface, #fff); }
-  .dial-modal-title { font-size: 14px; font-weight: 700; color: var(--text); }
-  .dial-modal-done { background: linear-gradient(135deg, #6c3483, #8e44ad); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
-  .dial-scroll-area { position: relative; overflow: hidden; }
-  .dial-scroll-area::before, .dial-scroll-area::after { content: ''; position: absolute; left: 0; right: 0; height: 70px; z-index: 2; pointer-events: none; }
-  .dial-scroll-area::before { top: 0; background: linear-gradient(to bottom, var(--surface, #fff), transparent); }
-  .dial-scroll-area::after { bottom: 0; background: linear-gradient(to top, var(--surface, #fff), transparent); }
-  .dial-selector-line { position: absolute; left: 20px; right: 20px; top: 0; transform: none; height: 44px; border-top: 2px solid var(--purple-light); border-bottom: 2px solid var(--purple-light); border-radius: 4px; z-index: 1; pointer-events: none; }
-  .dial-list { position: absolute; left: 0; right: 0; top: 0; cursor: grab; touch-action: none; }
-  .dial-list:active { cursor: grabbing; }
-  .dial-item { height: 44px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600; color: var(--muted); transition: color 0.15s, font-size 0.15s; user-select: none; }
-  .dial-item.selected { color: var(--text); font-size: 20px; }
+  .dial-display .dial-arrow { color: var(--muted); font-size: 12px; transition: transform 0.15s; }
+  .dial-display.open .dial-arrow { transform: rotate(180deg); }
+  .dial-dropdown { display: none; border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; background: var(--surface); overflow: hidden; }
+  .dial-dropdown.open { display: block; }
+  .dial-dropdown-item { padding: 12px 14px; font-size: 16px; font-weight: 600; cursor: pointer; color: var(--text); transition: background 0.1s; }
+  .dial-dropdown-item:hover, .dial-dropdown-item.selected { background: var(--bg3, #f0f4f8); }
+  .dial-dropdown-item.selected { color: var(--primary, #1a6cf4); }
   .field-row textarea { resize: vertical; min-height: 56px; }
 
   /* ===== 点検グループ ===== */
@@ -300,12 +289,6 @@
 <body>
 
 <!-- ダイヤルピッカーモーダル -->
-<div class="dial-modal-overlay" id="dial-overlay" onclick="dialOverlayClick(event)">
-  <div class="dial-modal">
-    <div class="dial-modal-header">
-      <span class="dial-modal-title">点検者を選択</span>
-      <button class="dial-modal-done" onclick="closeDial()">完了</button>
-    </div>
     <div class="dial-scroll-area">
       <div class="dial-selector-line"></div>
       <div class="dial-list" id="dial-list"></div>
@@ -466,67 +449,81 @@ async function loadInspectors() {
   }
 }
 
-// ===== ダイヤルピッカー =====
-const ITEM_H = 44, PADDING = 0;
-let dialTargetId = null, dialIndex = 0, dialStartY = 0, dialStartOffset = 0, dialOffset = 0, dialDragging = false;
+// ===== インラインドロップダウン =====
+let dialTargetId = null;
 
-let dialList = [];
-
-function buildDialList(listData) {
-  const list = document.getElementById('dial-list');
-  if (!list) return;
-  const items = [...Array(PADDING).fill(''), ...listData, ...Array(PADDING).fill('')];
-  // scroll-area高さをアイテム数に応じて動的設定（最大5アイテム分）
-  const visibleCount = Math.min(listData.length, 5);
-  const areaH = visibleCount * ITEM_H;
-  const scrollArea = list.closest('.dial-scroll-area');
-  if (scrollArea) scrollArea.style.height = areaH + 'px';
-  list.style.top = '0px';
-  list.innerHTML = items.map((n, i) => `<div class="dial-item" data-idx="${i - PADDING}">${n}</div>`).join('');
-  applyDialTransform(0); attachDialEvents();
-}
-function applyDialTransform(offset) {
-  dialOffset = Math.max(-(dialList.length - 1) * ITEM_H, Math.min(0, offset));
-  const list = document.getElementById('dial-list');
-  if (list) list.style.transform = `translateY(${dialOffset}px)`;
-  dialIndex = Math.max(0, Math.min(dialList.length - 1, Math.round(-dialOffset / ITEM_H)));
-  document.querySelectorAll('.dial-item').forEach(el => el.classList.toggle('selected', parseInt(el.dataset.idx) === dialIndex));
-}
-function snapDial() { applyDialTransform(-dialIndex * ITEM_H); }
-function attachDialEvents() {
-  const list = document.getElementById('dial-list');
-  if (!list) return;
-  list.addEventListener('touchstart', e => { dialDragging = true; dialStartY = e.touches[0].clientY; dialStartOffset = dialOffset; }, { passive: true });
-  list.addEventListener('touchmove',  e => { if (dialDragging) applyDialTransform(dialStartOffset + e.touches[0].clientY - dialStartY); }, { passive: true });
-  list.addEventListener('touchend',   () => { dialDragging = false; snapDial(); });
-  list.addEventListener('mousedown',  e => { dialDragging = true; dialStartY = e.clientY; dialStartOffset = dialOffset; });
-  window.addEventListener('mousemove',e => { if (dialDragging) applyDialTransform(dialStartOffset + e.clientY - dialStartY); });
-  window.addEventListener('mouseup',  () => { if (dialDragging) { dialDragging = false; snapDial(); } });
-}
 async function openDial(targetId) {
+  // 既に開いている場合は閉じる
+  const existingDrop = document.getElementById('drop-' + targetId);
+  if (existingDrop && existingDrop.classList.contains('open')) {
+    closeDial(targetId);
+    return;
+  }
+  // 他のドロップダウンをすべて閉じる
+  document.querySelectorAll('.dial-dropdown.open').forEach(d => {
+    d.classList.remove('open');
+    const disp = d.previousElementSibling;
+    if (disp) disp.classList.remove('open');
+  });
+
+  let list = [];
   if (targetId === 'f-supervisor') {
     await loadSupervisors();
-    dialList = SUPERVISORS.length > 0 ? SUPERVISORS : ['（未設定）'];
+    list = SUPERVISORS.length > 0 ? SUPERVISORS : ['（未設定）'];
   } else {
     await loadInspectors();
-    dialList = INSPECTORS;
+    list = INSPECTORS;
   }
+
   dialTargetId = targetId;
-  const idx = dialList.indexOf(document.getElementById(targetId)?.value);
-  buildDialList(dialList); applyDialTransform(idx >= 0 ? -idx * ITEM_H : 0); snapDial();
-  document.getElementById('dial-overlay').classList.add('open');
-}
-function closeDial() {
-  const selected = dialList[dialIndex] || '';
-  if (dialTargetId) {
-    const h = document.getElementById(dialTargetId);
-    const l = document.getElementById(dialTargetId + '-label');
-    if (h) h.value = selected;
-    if (l) l.textContent = selected || '選択してください';
+  const currentVal = document.getElementById(targetId)?.value || '';
+
+  // ドロップダウン要素を生成または更新
+  let drop = document.getElementById('drop-' + targetId);
+  if (!drop) {
+    drop = document.createElement('div');
+    drop.className = 'dial-dropdown';
+    drop.id = 'drop-' + targetId;
+    const display = document.getElementById(targetId + '-label')?.closest('.dial-display');
+    if (display && display.parentNode) {
+      display.parentNode.insertBefore(drop, display.nextSibling);
+    }
   }
-  document.getElementById('dial-overlay').classList.remove('open');
+  drop.innerHTML = list.map(name =>
+    `<div class="dial-dropdown-item${name === currentVal ? ' selected' : ''}" onclick="selectDialItem('${targetId}', this)">${name}</div>`
+  ).join('');
+
+  drop.classList.add('open');
+  const display = document.getElementById(targetId + '-label')?.closest('.dial-display');
+  if (display) display.classList.add('open');
 }
-function dialOverlayClick(e) { if (e.target === document.getElementById('dial-overlay')) closeDial(); }
+
+function selectDialItem(targetId, el) {
+  const selected = el.textContent;
+  const hidden = document.getElementById(targetId);
+  const label  = document.getElementById(targetId + '-label');
+  if (hidden) hidden.value = selected;
+  if (label)  label.textContent = selected;
+  closeDial(targetId);
+}
+
+function closeDial(targetId) {
+  const drop = document.getElementById('drop-' + (targetId || dialTargetId));
+  if (drop) drop.classList.remove('open');
+  const display = document.getElementById((targetId || dialTargetId) + '-label')?.closest('.dial-display');
+  if (display) display.classList.remove('open');
+}
+
+// 外側タップで閉じる
+document.addEventListener('click', e => {
+  if (!e.target.closest('.dial-picker-wrap')) {
+    document.querySelectorAll('.dial-dropdown.open').forEach(d => {
+      d.classList.remove('open');
+      const disp = d.previousElementSibling;
+      if (disp) disp.classList.remove('open');
+    });
+  }
+});
 
 // ===== 点検項目定義（判定基準付き） =====
 const GROUPS = [
