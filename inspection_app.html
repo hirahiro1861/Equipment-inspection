@@ -222,9 +222,8 @@
     inset: 0;
     background: rgba(0,0,0,0.4);
     z-index: 200;
-    align-items: flex-start;
+    align-items: flex-end;
     justify-content: center;
-    padding-top: 160px;
   }
   .dial-modal-overlay.open { display: flex; }
 
@@ -733,24 +732,6 @@ function getCurrentShift() {
   return '準夜（15:00〜23:59）';
 }
 
-// ===== localStorage キー =====
-function getStorageKey(tag) {
-  const today = new Date().toISOString().slice(0, 10);
-  const shift = getCurrentShift();
-  return `kiki_${today}_${shift}_${tag}`;
-}
-
-// ===== localStorage から復元 =====
-function restoreFromLocalStorage() {
-  allDevices.forEach(dev => {
-    const key = getStorageKey(dev.tag);
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      results[dev.tag] = JSON.parse(saved);
-    }
-  });
-}
-
 // ===== サイドバー生成 =====
 function buildSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -1118,14 +1099,6 @@ async function submitForm(tag) {
   // ローカル保存
   results[tag] = { date, time, submitter, items, note, requireRepair, supervisor, repairItems: { ...repairItems } };
 
-  // サイドバードット更新
-  const dot = document.getElementById(`dot-${tag}`);
-  if (dot) dot.className = `status-dot ${hasNG(results[tag]) ? 'ng' : 'ok'}`;
-  updateProgress();
-
-  // localStorage にシフト別完了フラグ書き込み
-  saveToLocalStorage();
-
   // GAS送信
   btn.disabled = true;
   msg.textContent = '送信中...';
@@ -1172,10 +1145,14 @@ async function submitForm(tag) {
       // メディアをリセット
       mediaFiles.length = 0;
       renderMediaPreview();
-      // localStorageに保存してバッジ更新
-      localStorage.setItem(getStorageKey(tag), JSON.stringify(results[tag]));
+      // sentResultsに登録してlocalStorage保存・バッジ更新
+      sentResults[tag] = results[tag];
+      delete tempResults[tag];
+      localStorage.setItem(getStorageKey(tag, 'sent'), JSON.stringify(results[tag]));
+      localStorage.removeItem(getStorageKey(tag, 'temp'));
       updateSidebarBadge(tag);
-      saveToLocalStorage();
+      updateProgress();
+      saveIndexFlag();
     } else {
       throw new Error(json.message || 'エラー');
     }

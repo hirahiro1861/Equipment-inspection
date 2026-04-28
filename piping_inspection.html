@@ -105,13 +105,13 @@
     border-bottom: 1px solid #f0f4f8;
     transition: background 0.15s;
   }
-  .device-item:hover { background: #eef6ff; }
+  .device-item:hover { background: var(--hover-bg); }
   .device-item.active { background: #d6f5ef; border-left: 3px solid var(--teal); padding-left: 17px; }
   .device-name { font-size: 13px; flex: 1; line-height: 1.4; }
   .no-badge {
     font-size: 10px;
     color: var(--muted);
-    background: #eef2f7;
+    background: var(--bg2);
     border-radius: 3px;
     padding: 1px 5px;
     flex-shrink: 0;
@@ -169,7 +169,7 @@
   .dial-display { border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-size: 14px; background: var(--input-bg, #fff); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: border-color 0.15s; }
   .dial-display:hover { border-color: var(--teal); }
   .dial-display .dial-arrow { color: var(--muted); font-size: 12px; }
-  .dial-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-start; justify-content: center; padding-top: 160px; }
+  .dial-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
   .dial-modal-overlay.open { display: flex; }
   .dial-modal { background: var(--surface, #fff); border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
   .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface, #fff); }
@@ -187,8 +187,8 @@
 
   /* ===== 配管情報 ===== */
   .piping-info {
-    background: #f0faf8;
-    border: 1px solid #a8d8ce;
+    background: var(--bg3, #f0faf8);
+    border: 1px solid var(--border);
     border-radius: 6px;
     padding: 12px 14px;
     font-size: 13px;
