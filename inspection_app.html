@@ -1144,6 +1144,7 @@ async function submitForm(tag) {
   }
 
   const payload = {
+    sheetName: '機器点検記録',
     date,
     time,
     submitter,
@@ -1161,6 +1162,7 @@ async function submitForm(tag) {
   try {
     const res = await fetch(GAS_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
     });
     const json = await res.json();
@@ -1284,79 +1286,6 @@ function tempSaveForm(tag) {
   msg.className = 'submit-msg ok';
 }
 
-// ===== 送信処理 =====
-async function submitForm(tag) {
-  const dev = allDevices.find(d => d.tag === tag);
-  const date      = document.getElementById('f-date').value;
-  const time      = document.getElementById('f-time').value;
-  const submitter = document.getElementById('f-submitter').value;
-  const note      = document.getElementById('f-note')?.value.trim() || '';
-  const msg       = document.getElementById('submit-msg');
-  const btn       = document.getElementById('btn-submit');
-
-  if (!submitter) { msg.textContent = '点検者名を入力してください'; msg.className = 'submit-msg err'; return; }
-
-  const items = {};
-  PATTERNS[dev.pattern].forEach(item => {
-    const checked = document.querySelector(`input[name="item-${item}"]:checked`);
-    items[item] = checked ? checked.value : '';
-  });
-
-  const unchecked = PATTERNS[dev.pattern].filter(item => !items[item]);
-  if (unchecked.length > 0) {
-    msg.textContent = `未選択の項目があります：${unchecked.join('、')}`;
-    msg.className = 'submit-msg err';
-    return;
-  }
-
-  const data = { date, time, submitter, items, note };
-
-  btn.disabled = true;
-  msg.textContent = '送信中...';
-  msg.className = 'submit-msg';
-
-  const mediaData = [];
-  for (const m of mediaFiles) {
-    const base64 = await fileToBase64(m.file);
-    mediaData.push({ name: m.file.name, type: m.type, mimeType: m.file.type, data: base64 });
-  }
-
-  const payload = {
-    sheetName: '機器点検記録',
-    date, time, submitter,
-    tag, deviceName: dev.name, pattern: dev.pattern,
-    items, note, media: mediaData
-  };
-
-  try {
-    const res  = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
-    const json = await res.json();
-    if (json.status === 'ok') {
-      msg.textContent = '✔ 送信しました';
-      msg.className = 'submit-msg ok';
-      mediaFiles.length = 0;
-      renderMediaPreview();
-
-      // 送信済みに昇格
-      sentResults[tag] = data;
-      results[tag]     = data;
-      delete tempResults[tag];
-
-      // localStorage更新
-      localStorage.setItem(getStorageKey(tag, 'sent'), JSON.stringify(data));
-      localStorage.removeItem(getStorageKey(tag, 'temp'));
-      updateSidebarBadge(tag);
-      updateProgress();
-      saveIndexFlag();
-    } else {
-      throw new Error(json.message || 'エラー');
-    }
-  } catch(e) {
-    msg.textContent = '送信エラー: ' + e.message;
-    msg.className = 'submit-msg err';
-  }
-  btn.disabled = false;
-}
 function downloadExcel() {
   const SHEET_ID = '1HGtBnIGyTMh7OAZz0ciDyJBeqF60fnDalP7ESDrDbhM';
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=xlsx&sheet=点検記録`;
