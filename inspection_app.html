@@ -230,6 +230,7 @@
   .dial-modal {
     background: var(--input-bg);
     border-radius: 16px 16px 0 0;
+    max-height: 80vh;
     width: 100%;
     max-width: 520px;
     padding-bottom: env(safe-area-inset-bottom, 0);
@@ -258,7 +259,6 @@
 
   .dial-scroll-area {
     position: relative;
-    height: 200px;
     overflow: hidden;
   }
   /* 上下グラデーションで奥行き感 */
@@ -283,8 +283,7 @@
   .dial-selector-line {
     position: absolute;
     left: 20px; right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0; transform: none;
     height: 44px;
     border-top: 2px solid var(--primary-light);
     border-bottom: 2px solid var(--primary-light);
@@ -1298,7 +1297,7 @@ async function loadInspectors() {
 
 // ===== ダイヤルピッカー =====
 const ITEM_H = 44;       // 1アイテムの高さ
-const PADDING = 3;       // 上下のパディング項目数
+const PADDING = 0;       // 上下のパディング項目数
 let dialTargetId = null;
 let dialIndex = 0;
 let dialStartY = 0;
@@ -1310,7 +1309,12 @@ function buildDialList(listData) {
   const list = document.getElementById('dial-list');
   if (!list) return;
   const items = [...Array(PADDING).fill(''), ...listData, ...Array(PADDING).fill('')];
-  list.style.top = `${(200 / 2) - (ITEM_H / 2) - PADDING * ITEM_H}px`;
+  // scroll-area高さをアイテム数に応じて動的設定（最大5アイテム分）
+  const visibleCount = Math.min(listData.length, 5);
+  const areaH = visibleCount * ITEM_H;
+  const scrollArea = list.closest('.dial-scroll-area');
+  if (scrollArea) scrollArea.style.height = areaH + 'px';
+  list.style.top = '0px';
   list.innerHTML = items.map((name, i) => {
     const realIdx = i - PADDING;
     return `<div class="dial-item" data-idx="${realIdx}">${name}</div>`;

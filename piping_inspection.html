@@ -171,15 +171,16 @@
   .dial-display .dial-arrow { color: var(--muted); font-size: 12px; }
   .dial-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
   .dial-modal-overlay.open { display: flex; }
-  .dial-modal { background: var(--surface, #fff); border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
+  .dial-modal { background: var(--surface, #fff); border-radius: 16px 16px 0 0;
+    max-height: 80vh; width: 100%; max-width: 520px; padding-bottom: env(safe-area-inset-bottom, 0); overflow: hidden; }
   .dial-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface, #fff); }
   .dial-modal-title { font-size: 14px; font-weight: 700; color: var(--text); }
   .dial-modal-done { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
-  .dial-scroll-area { position: relative; height: 200px; overflow: hidden; }
+  .dial-scroll-area { position: relative; overflow: hidden; }
   .dial-scroll-area::before, .dial-scroll-area::after { content: ''; position: absolute; left: 0; right: 0; height: 70px; z-index: 2; pointer-events: none; }
   .dial-scroll-area::before { top: 0; background: linear-gradient(to bottom, var(--surface, #fff), transparent); }
   .dial-scroll-area::after { bottom: 0; background: linear-gradient(to top, var(--surface, #fff), transparent); }
-  .dial-selector-line { position: absolute; left: 20px; right: 20px; top: 50%; transform: translateY(-50%); height: 44px; border-top: 2px solid var(--teal); border-bottom: 2px solid var(--teal); border-radius: 4px; z-index: 1; pointer-events: none; }
+  .dial-selector-line { position: absolute; left: 20px; right: 20px; top: 0; transform: none; height: 44px; border-top: 2px solid var(--teal); border-bottom: 2px solid var(--teal); border-radius: 4px; z-index: 1; pointer-events: none; }
   .dial-list { position: absolute; left: 0; right: 0; top: 0; cursor: grab; touch-action: none; }
   .dial-list:active { cursor: grabbing; }
   .dial-item { height: 44px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600; color: var(--muted); transition: color 0.15s, font-size 0.15s; user-select: none; }
@@ -889,7 +890,7 @@ async function loadInspectors() {
 
 // ===== ダイヤルピッカー =====
 const ITEM_H = 44;
-const PADDING = 3;
+const PADDING = 0;
 let dialTargetId = null;
 let dialIndex = 0;
 let dialStartY = 0;
@@ -903,7 +904,12 @@ function buildDialList(listData) {
   const list = document.getElementById('dial-list');
   if (!list) return;
   const items = [...Array(PADDING).fill(''), ...listData, ...Array(PADDING).fill('')];
-  list.style.top = `${(200 / 2) - (ITEM_H / 2) - PADDING * ITEM_H}px`;
+  // scroll-area高さをアイテム数に応じて動的設定（最大5アイテム分）
+  const visibleCount = Math.min(listData.length, 5);
+  const areaH = visibleCount * ITEM_H;
+  const scrollArea = list.closest('.dial-scroll-area');
+  if (scrollArea) scrollArea.style.height = areaH + 'px';
+  list.style.top = '0px';
   list.innerHTML = items.map((name, i) => `<div class="dial-item" data-idx="${i - PADDING}">${name}</div>`).join('');
   applyDialTransform(0);
   attachDialEvents();
