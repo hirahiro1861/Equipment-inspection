@@ -186,30 +186,6 @@
   .value-input-wrap input[type=number]:focus { border-color: var(--purple-light); }
   .value-input-wrap .unit { font-size: 13px; color: var(--muted); }
 
-  /* ===== ガス積算計（数値入力） ===== */
-  .gas-meter-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 16px 20px; margin-bottom: 16px;
-  }
-  .gas-meter-card .card-title {
-    font-size: 12px; font-weight: 700; color: var(--muted);
-    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px;
-  }
-  .gas-meter-card .criteria-text {
-    font-size: 11px; color: var(--muted); margin-bottom: 12px;
-  }
-  .gas-meter-input {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .gas-meter-input input {
-    border: 1px solid var(--border); border-radius: 5px; padding: 8px 12px;
-    font-size: 18px; font-family: inherit; width: 160px;
-    background: var(--input-bg, #fff); color: var(--text); outline: none;
-    text-align: right; transition: border-color 0.15s;
-  }
-  .gas-meter-input input:focus { border-color: var(--purple-light); }
-  .gas-meter-input span { font-size: 14px; color: var(--muted); }
-
   /* ===== 備考 ===== */
   .note-card {
     background: var(--surface); border: 1px solid var(--border);
@@ -313,9 +289,8 @@
     <div class="legend-title">📋 判定凡例</div>
     <div class="legend-grid">
       <div class="legend-item"><div class="legend-badge lg-ok">○</div><span>正常</span></div>
-      <div class="legend-item"><div class="legend-badge lg-warn">△</div><span>処理済</span></div>
-      <div class="legend-item"><div class="legend-badge lg-ng">×</div><span>未処理</span></div>
-      <div class="legend-item"><div class="legend-badge lg-na">／</div><span>該当なし</span></div>
+      <div class="legend-item"><div class="legend-badge lg-warn">△</div><span>要注意</span></div>
+      <div class="legend-item"><div class="legend-badge lg-ng">×</div><span>異常あり</span></div>
     </div>
   </div>
 
@@ -354,16 +329,6 @@
 
   <!-- 点検グループ（JS生成） -->
   <div id="check-groups"></div>
-
-  <!-- ガス積算計 -->
-  <div class="gas-meter-card">
-    <div class="card-title">ガス積算計の指示</div>
-    <div class="criteria-text">終業時と比較して著しく積算されていないこと</div>
-    <div class="gas-meter-input">
-      <input type="number" id="f-gas-meter" placeholder="0.00" step="0.01" min="0">
-      <span>%</span>
-    </div>
-  </div>
 
   <!-- 修理依頼書情報 -->
   <div class="repair-info-card" id="repair-section" style="display:none">
@@ -528,38 +493,22 @@ document.addEventListener('click', e => {
 // ===== 点検項目定義（判定基準付き） =====
 const GROUPS = [
   {
-    title: '稼働状態検査',
+    title: '計器確認',
     items: [
-      { no: 1,  label: '指示圧力 (MPa)',    criteria: '0.18±0.02MPa、閉塞時 0.7MPa以下', valueInput: { unit: 'MPa', placeholder: '0.00' } },
-      { no: 2,  label: '温度計 (℃)',         criteria: '70〜85℃の範囲内',                   valueInput: { unit: '℃',   placeholder: '0.0'  } },
-      { no: 3,  label: '水位計',             criteria: '「下限（赤線）」の水位以上' },
-      { no: 4,  label: 'ガス検知器動作',     criteria: 'ガス検知器の動作または検知液の発泡がないこと' },
-      { no: 5,  label: '表示灯点灯',         criteria: '電源・運転の各ランプが点灯していること' },
-      { no: 6,  label: '異常音の有無',       criteria: 'うなり等異常音のないこと' },
+      { no: 1, label: 'タンク残量',         criteria: '20〜85%',                        valueInput: { unit: '%',   placeholder: '0.0'  } },
+      { no: 2, label: '貯槽圧力',           criteria: '0.28〜1.5MPa',                   valueInput: { unit: 'MPa', placeholder: '0.00' } },
+      { no: 3, label: '気化器1次圧力',      criteria: '0.28〜1.6MPa',                   valueInput: { unit: 'MPa', placeholder: '0.00' } },
+      { no: 4, label: '気化器2次圧力',      criteria: '0.18MPa±0.02MPa（供給停止中は0.7MPa未満）', valueInput: { unit: 'MPa', placeholder: '0.00' } },
+      { no: 5, label: '気化器出口圧力',     criteria: '0.07〜0.09MPa',                  valueInput: { unit: 'MPa', placeholder: '0.00' } },
+      { no: 6, label: '気化器温度',         criteria: '70〜85℃',                        valueInput: { unit: '℃',   placeholder: '0.0'  } },
     ]
   },
   {
-    title: '漏洩検査',
+    title: '異常確認',
     items: [
-      { no: 7,  label: '一次圧力計（液入口圧力）', criteria: '設定圧力の1.25倍以下または最大閉塞圧力以下', valueInput: { unit: 'MPa', placeholder: '0.00' } },
-      { no: 8,  label: '二次圧力計（気化圧力）',   criteria: '0.18±0.02MPa',                              valueInput: { unit: 'MPa', placeholder: '0.00' } },
-      { no: 9,  label: '三次圧力計（供給圧力）',   criteria: '使用側容器群の圧力計指示とほぼ同じ',         valueInput: { unit: 'MPa', placeholder: '0.00' } },
-    ]
-  },
-  {
-    title: '配管部',
-    items: [
-      { no: 10, label: '振動の有無',   criteria: '配管の揺れを感じる振動がないこと' },
-      { no: 11, label: '着霜の有無',   criteria: 'ガス出口配管部に霜が付着していないこと' },
-    ]
-  },
-  {
-    title: '付属品検査',
-    items: [
-      { no: 12, label: '安全弁・元弁「開」', criteria: 'バルブのハンドルを回して全開のこと' },
-      { no: 13, label: '水位計',             criteria: '「下限（赤線）」の水位以上' },
-      { no: 14, label: '温度計',             criteria: '70〜85℃の範囲内',  valueInput: { unit: '℃', placeholder: '0.0' } },
-      { no: 15, label: '制御盤 電気',        criteria: '電源・運転の各ランプが点灯していること' },
+      { no: 7, label: '気化器水位異常',       criteria: '「有」の場合は異常あり（×）を選択' },
+      { no: 8, label: '制御盤異常',           criteria: '「有」の場合は異常あり（×）を選択' },
+      { no: 9, label: 'ガス漏れ検知器異常',   criteria: '「有」の場合は異常あり（×）を選択' },
     ]
   }
 ];
@@ -592,7 +541,7 @@ GROUPS.forEach(g => {
           </div>
         </div>
         <div class="judge-group">
-          ${['○','△','×','／'].map(v =>
+          ${['○','△','×'].map(v =>
             `<label><input type="radio" name="item-${item.no}" value="${v}" onchange="updateProgress()"><span>${v}</span></label>`
           ).join('')}
         </div>
@@ -677,7 +626,6 @@ async function submitForm() {
   const time      = document.getElementById('f-time').value;
   const submitter = document.getElementById('f-submitter').value.trim();
   const note      = document.getElementById('f-note').value.trim();
-  const gasMeter  = document.getElementById('f-gas-meter').value;
   const msg       = document.getElementById('submit-msg');
   const btn       = document.getElementById('btn-submit');
 
@@ -735,7 +683,6 @@ async function submitForm() {
   const payload = {
     sheetName: 'ベーパライザ記録',
     date, time, submitter,
-    gasMeter: gasMeter || '',
     items, values, note,
     requireRepair, supervisor,
     repairItems: { ...repairItems },
